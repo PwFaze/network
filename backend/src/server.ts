@@ -1,7 +1,9 @@
-const express = require("express");
-const http = require("http");
-const cors = require("cors");
-const { Server } = require("socket.io");
+import express from "express";
+import cors from "cors";
+import { Server } from "socket.io";
+import http from "http";
+import "dotenv/config";
+import { connectDB } from "./db/db";
 
 const app = express();
 const server = http.createServer(app);
@@ -15,7 +17,8 @@ const io = new Server(server, {
   },
 });
 
-io.on("connection", (socket: any) => {
+connectDB();
+io.on("conection", (socket: any) => {
   console.log("a user connected:", socket.id);
 
   socket.on("chat message", (msg: any) => {
