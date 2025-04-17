@@ -1,15 +1,27 @@
 import React from "react";
-import { ChatTarget } from "./Chat";
+import { ChatTarget, GroupChat, Message } from "@/dto/Chat";
+import { User } from "@/dto/User";
 import ChatBubble from "./ChatBubble";
+import { useChat } from "@/hooks/useChat";
+
+function isGroupChat(chat: ChatTarget): chat is GroupChat {
+  return (chat as GroupChat).participants !== undefined;
+}
+
+function isUser(chat: ChatTarget): chat is User {
+  return (chat as User).username !== undefined;
+}
 
 interface ChatWindowProps {
   isMobile: boolean;
-  selectedChat: ChatTarget | null;
-  chat: string[];
+  selectedChat: GroupChat | User | null;
+  chat: Message[];
   message: string;
   setMessage: React.Dispatch<React.SetStateAction<string>>;
-  sendMessage: (e: React.FormEvent) => void;
-  setSelectedChat: React.Dispatch<React.SetStateAction<ChatTarget | null>>;
+  handleSendMessage: (e: React.FormEvent) => void;
+  setSelectedChat: React.Dispatch<
+    React.SetStateAction<GroupChat | User | null>
+  >;
 }
 
 export default function ChatWindow({
@@ -18,9 +30,11 @@ export default function ChatWindow({
   chat,
   message,
   setMessage,
-  sendMessage,
+  handleSendMessage,
   setSelectedChat,
 }: ChatWindowProps) {
+  const { user } = useChat();
+
   return (
     <div className="flex-1 bg-slate-50 p-4 relative flex flex-col md:p-4 md:py-12">
       {/* Chat Header */}
@@ -35,15 +49,21 @@ export default function ChatWindow({
                 ←
               </button>
             )}
-            <div>{selectedChat.name}</div>
+            <div>
+              {isGroupChat(selectedChat)
+                ? selectedChat.name
+                : isUser(selectedChat)
+                  ? selectedChat.username
+                  : "Unknown"}
+            </div>
             {/* Display online status */}
-            {selectedChat.type === "user" && (
+            {isUser(selectedChat) && (
               <div
                 className={`text-sm ${
-                  selectedChat.isOnline ? "text-green-500" : "text-gray-500"
+                  selectedChat ? "text-green-500" : "text-gray-500"
                 }`}
               >
-                {selectedChat.isOnline ? "Online" : "Offline"}
+                {selectedChat ? "Online" : "Offline"}
               </div>
             )}
           </div>
@@ -55,32 +75,34 @@ export default function ChatWindow({
       {/* Message display area */}
       <div className="flex-1 border rounded p-2 overflow-y-auto bg-[#F0F4FA]">
         <ul>
-          {chat.map((msg, i) => (
+          {chat?.map((msg, i) => (
             <li key={i} className="mb-1">
               <ChatBubble
-                message={msg}
+                message={msg.content}
                 senderName={
-                  i % 2 === 0 ? "Me" : selectedChat?.name || "Unknown"
+                  msg.sender.id === user.id ? "Me" : msg.sender.username
                 }
-                isOwnMessage={i % 2 === 0}
+                isOwnMessage={msg.sender.id === user.id}
               />
             </li>
           ))}
         </ul>
       </div>
 
-      {/* Message input form */}
-      <form onSubmit={sendMessage} className="p-4 flex gap-2">
+      <form onSubmit={handleSendMessage} className="p-4 flex gap-2">
         <input
           type="text"
           value={message}
           placeholder="Type something..."
           onChange={(e) => setMessage(e.target.value)}
+          disabled={!selectedChat}
           className="flex-1 border px-3 py-2 rounded text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-sky-600"
         />
         <button
           type="submit"
-          className="bg-blue-500 text-white px-4 py-2 rounded"
+          className={`${
+            selectedChat ? "bg-blue-500" : "bg-gray-400"
+          } text-white px-4 py-2 rounded`}
         >
           Send
         </button>
