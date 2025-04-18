@@ -86,57 +86,94 @@ export default function Chat() {
     setMessage("");
   };
 
+  const [tab, setTab] = useState<"register" | "login">("register");
+
   return (
-    <div className="relative h-screen">
-      {!user.username && (
-        <div className="absolute inset-0 z-50 flex flex-col items-center text-black justify-center bg-white bg-opacity-90 backdrop-blur-sm">
-          <h2 className="text-2xl mb-4">Enter your username</h2>
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            className="border rounded px-4 py-2 mb-2"
-          />
+    <div className="relative h-screen flex items-center justify-center bg-gray-100">
+      <div className="w-full max-w-md bg-white rounded shadow-md p-6">
+        <div className="flex justify-center mb-4">
           <button
-            onClick={() => {
-              if (input.trim()) {
-                joinChat({
-                  username: input,
-                  id: crypto.randomUUID(),
-                  socketId: socket?.id ?? "",
-                });
-              }
-            }}
-            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+            onClick={() => setTab("register")}
+            className={`px-4 py-2 rounded-tl rounded-tr ${
+              tab === "register" ? "bg-blue-500 text-white" : "bg-gray-200 text-black"
+            }`}
           >
-            Join
+            Register
+          </button>
+          <button
+            onClick={() => setTab("login")}
+            className={`px-4 py-2 rounded-tl rounded-tr ${
+              tab === "login" ? "bg-blue-500 text-white" : "bg-gray-200 text-black"
+            }`}
+          >
+            Login
           </button>
         </div>
-      )}
 
-      {user && (
-        <div className="h-full flex flex-col md:flex-row filter-none">
-          <Sidebar setView={setView} view={view} />
-          {(!isMobile || (isMobile && !selectedChat)) && (
-            <ContactList
-              view={view}
-              friends={activeUsers}
-              groups={groups}
-              setSelectedChat={setSelectedChat}
+        {tab === "register" && (
+          <div>
+            <h2 className="text-2xl mb-4 text-center text-black">Register</h2>
+            <input
+              placeholder="Username"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              className="border rounded w-full px-4 py-2 mb-2 text-black"
             />
-          )}
-          {(!isMobile || (isMobile && selectedChat)) && (
-            <ChatWindow
-              isMobile={isMobile}
-              selectedChat={selectedChat}
-              chat={messages[selectedChat?.id ?? ""]}
-              message={message}
-              setMessage={setMessage}
-              handleSendMessage={handleSendMessage}
-              setSelectedChat={setSelectedChat}
+            <input
+              placeholder="password"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              className="border rounded w-full px-4 py-2 mb-2 text-black"
             />
-          )}
-        </div>
-      )}
+            <button
+              onClick={() => {
+                if (input.trim()) {
+                  joinChat({
+                    username: input,
+                    id: crypto.randomUUID(),
+                    socketId: socket?.id ?? "",
+                  });
+                }
+              }}
+              className="bg-blue-500 text-white w-full px-4 py-2 rounded hover:bg-blue-600"
+            >
+              Register
+            </button>
+          </div>
+        )}
+
+        {tab === "login" && (
+          <div>
+            <h2 className="text-2xl mb-4 text-center text-black">Login</h2>
+            <input
+              placeholder="Username"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              className="border rounded w-full px-4 py-2 mb-2 text-black"
+            />
+            <input
+              placeholder="password"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              className="border rounded w-full px-4 py-2 mb-2 text-black"
+            />
+            <button
+              onClick={() => {
+                if (input.trim()) {
+                  joinChat({
+                    username: input,
+                    id: crypto.randomUUID(),
+                    socketId: socket?.id ?? "",
+                  });
+                }
+              }}
+              className="bg-blue-500 text-white w-full px-4 py-2 rounded hover:bg-blue-600"
+            >
+              Login
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

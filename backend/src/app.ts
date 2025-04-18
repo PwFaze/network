@@ -7,10 +7,16 @@ import { connectDB } from "./db/db";
 import { setupSocketHandlers } from "./handlers/socket";
 
 dotenv.config();
+
+import auth from "./routes/auth";
+
 const app = express();
 const server = http.createServer(app);
 
 app.use(cors());
+app.use(express.json());
+
+app.use("/api/auth", auth);
 
 const io = new Server(server, {
   cors: {
