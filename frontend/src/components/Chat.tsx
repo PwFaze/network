@@ -23,6 +23,7 @@ export default function Chat() {
   const [message, setMessage] = useState("");
   const [view, setView] = useState<"friends" | "groups">("friends");
   const [isMobile, setIsMobile] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false); // Track authentication state
 
   const groups = [
     { name: "Family" },
@@ -44,6 +45,7 @@ export default function Chat() {
     });
     return unsubscribe;
   }, [onMessage]);
+
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
@@ -88,10 +90,7 @@ export default function Chat() {
     setMessage("");
   };
 
-  const [tab, setTab] = useState<"register" | "login">("register");
-
   const handleRegister = async () => {
-    console.log("register start");
     if (input.trim() && password.trim()) {
       try {
         const response = await fetch("http://localhost:4000/api/auth/register", {
@@ -112,6 +111,7 @@ export default function Chat() {
             id: crypto.randomUUID(),
             socketId: socket?.id ?? "",
           });
+          setIsAuthenticated(true); // Set authenticated state
         } else {
           console.error("Registration failed:", await response.text());
         }
@@ -120,6 +120,7 @@ export default function Chat() {
       }
     }
   };
+
   const handleLogin = async () => {
     if (input.trim() && password.trim()) {
       try {
@@ -137,12 +138,14 @@ export default function Chat() {
         if (response.ok) {
           const data = await response.json();
           console.log("Login successful:", data);
+          console.log("IsAuthenticated:", isAuthenticated);
+          setIsAuthenticated(true); // Set authenticated state
+          console.log("IsAuthenticated:", isAuthenticated);
           joinChat({
             username: input,
             id: crypto.randomUUID(),
             socketId: socket?.id ?? "",
           });
-          // console.log("join chat");
         } else {
           console.error("Login failed:", await response.text());
         }
@@ -151,94 +154,112 @@ export default function Chat() {
       }
     }
   };
+
+  const [tab, setTab] = useState<"register" | "login">("register");
   return (
-    <div className="relative h-screen flex items-center justify-center bg-gray-100">
-      <div className="w-full max-w-md bg-white rounded shadow-md p-6">
-        <div className="flex justify-center mb-4">
-          <button
-            onClick={() => setTab("register")}
-            className={`px-4 py-2 rounded-tl rounded-tr ${
-              tab === "register" ? "bg-blue-500 text-white" : "bg-gray-200 text-black"
-            }`}
-          >
-            Register
-          </button>
-          <button
-            onClick={() => setTab("login")}
-            className={`px-4 py-2 rounded-tl rounded-tr ${
-              tab === "login" ? "bg-blue-500 text-white" : "bg-gray-200 text-black"
-            }`}
-          >
-            Login
-          </button>
+    <div className="relative h-screen">
+      {!isAuthenticated ? ( // Show authentication form if not authenticated
+        <div className="absolute inset-0 z-50 flex flex-col items-center text-black justify-center bg-white bg-opacity-90 backdrop-blur-sm">
+          <div className="w-full max-w-md bg-white rounded shadow-md p-6">
+            <div className="flex justify-center mb-4">
+              <button
+                onClick={() => setTab("register")}
+                className={`px-4 py-2 rounded-tl rounded-tr ${
+                  tab === "register"
+                    ? "bg-blue-500 text-white"
+                    : "bg-gray-200 text-black"
+                }`}
+              >
+                Register
+              </button>
+              <button
+                onClick={() => setTab("login")}
+                className={`px-4 py-2 rounded-tl rounded-tr ${
+                  tab === "login"
+                    ? "bg-blue-500 text-white"
+                    : "bg-gray-200 text-black"
+                }`}
+              >
+                Login
+              </button>
+            </div>
+
+            {tab === "register" && (
+              <div>
+                <h2 className="text-2xl mb-4 text-center text-black">
+                  Register
+                </h2>
+                <input
+                  placeholder="Username"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  className="border rounded w-full px-4 py-2 mb-2 text-black"
+                />
+                <input
+                  placeholder="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="border rounded w-full px-4 py-2 mb-2 text-black"
+                />
+                <button
+                  onClick={handleRegister}
+                  className="bg-blue-500 text-white w-full px-4 py-2 rounded hover:bg-blue-600"
+                >
+                  Register
+                </button>
+              </div>
+            )}
+
+            {tab === "login" && (
+              <div>
+                <h2 className="text-2xl mb-4 text-center text-black">Login</h2>
+                <input
+                  placeholder="Username"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  className="border rounded w-full px-4 py-2 mb-2 text-black"
+                />
+                <input
+                  placeholder="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="border rounded w-full px-4 py-2 mb-2 text-black"
+                />
+                <button
+                  onClick={handleLogin}
+                  className="bg-blue-500 text-white w-full px-4 py-2 rounded hover:bg-blue-600"
+                >
+                  Login
+                </button>
+              </div>
+            )}
+          </div>
         </div>
-
-        {tab === "register" && (
-          <div>
-            <h2 className="text-2xl mb-4 text-center text-black">Register</h2>
-            <input
-              placeholder="Username"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              className="border rounded w-full px-4 py-2 mb-2 text-black"
+      ) : (
+        // Show chat components if authenticated
+        <div className="h-full flex flex-col md:flex-row filter-none">
+          <Sidebar setView={setView} view={view} />
+          {(!isMobile || (isMobile && !selectedChat)) && (
+            <ContactList
+              view={view}
+              friends={activeUsers}
+              groups={groups}
+              setSelectedChat={setSelectedChat}
             />
-            <input
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="border rounded w-full px-4 py-2 mb-2 text-black"
+          )}
+          {(!isMobile || (isMobile && selectedChat)) && (
+            <ChatWindow
+              isMobile={isMobile}
+              selectedChat={selectedChat}
+              chat={messages[selectedChat?.id ?? ""]}
+              message={message}
+              setMessage={setMessage}
+              handleSendMessage={handleSendMessage}
+              setSelectedChat={setSelectedChat}
             />
-            <button
-              // onClick={() => {
-              //   if (input.trim()) {
-              //     joinChat({
-              //       username: input,
-              //       id: crypto.randomUUID(),
-              //       socketId: socket?.id ?? "",
-              //     });
-              //   }
-              // }}
-              onClick={handleRegister}
-              className="bg-blue-500 text-white w-full px-4 py-2 rounded hover:bg-blue-600"
-            >
-              Register
-            </button>
-          </div>
-        )}
-
-        {tab === "login" && (
-          <div>
-            <h2 className="text-2xl mb-4 text-center text-black">Login</h2>
-            <input
-              placeholder="Username"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              className="border rounded w-full px-4 py-2 mb-2 text-black"
-            />
-            <input
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="border rounded w-full px-4 py-2 mb-2 text-black"
-            />
-            <button
-              // onClick={() => {
-              //   if (input.trim()) {
-              //     joinChat({
-              //       username: input,
-              //       id: crypto.randomUUID(),
-              //       socketId: socket?.id ?? "",
-              //     });
-              //   }
-              // }}
-              onClick={handleLogin}
-              className="bg-blue-500 text-white w-full px-4 py-2 rounded hover:bg-blue-600"
-            >
-              Login
-            </button>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
