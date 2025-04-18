@@ -138,9 +138,9 @@ export default function Chat() {
         if (response.ok) {
           const data = await response.json();
           console.log("Login successful:", data);
-          console.log("IsAuthenticated:", isAuthenticated);
           setIsAuthenticated(true); // Set authenticated state
-          console.log("IsAuthenticated:", isAuthenticated);
+          console.log("Token:", data.token);
+          localStorage.setItem("token", data.token); // persists even after page reload
           joinChat({
             username: input,
             id: crypto.randomUUID(),
