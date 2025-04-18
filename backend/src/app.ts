@@ -9,6 +9,7 @@ import { setupSocketHandlers } from "./handlers/socket";
 dotenv.config();
 
 import auth from "./routes/auth";
+import groups from "./routes/groups";
 
 const app = express();
 const server = http.createServer(app);
@@ -17,6 +18,7 @@ app.use(cors());
 app.use(express.json());
 
 app.use("/api/auth", auth);
+app.use("/api/groups", groups);
 
 const io = new Server(server, {
   cors: {
