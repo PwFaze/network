@@ -7,6 +7,7 @@ import ChatWindow from "./ChatWindow";
 import { GroupChat, Message } from "@/dto/Chat";
 import { ChatTarget } from "@/dto/Chat";
 import { useChat } from "@/hooks/useChat";
+import { log } from "console";
 
 function isGroupChat(chat: ChatTarget): chat is GroupChat {
   return (chat as GroupChat).participants !== undefined;
@@ -16,6 +17,7 @@ export default function Chat() {
   const { user, joinChat, activeUsers, sendMessage, onMessage, socket } =
     useChat();
   const [input, setInput] = useState("");
+  const [password, setPassword] = useState("");
   const [messages, setMessages] = useState<{ [chatId: string]: Message[] }>({});
   const [selectedChat, setSelectedChat] = useState<ChatTarget | null>(null);
   const [message, setMessage] = useState("");
@@ -88,6 +90,67 @@ export default function Chat() {
 
   const [tab, setTab] = useState<"register" | "login">("register");
 
+  const handleRegister = async () => {
+    console.log("register start");
+    if (input.trim() && password.trim()) {
+      try {
+        const response = await fetch("http://localhost:4000/api/auth/register", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            username: input,
+            password: password,
+          }),
+        });
+        if (response.ok) {
+          const data = await response.json();
+          console.log("Registration successful:", data);
+          joinChat({
+            username: input,
+            id: crypto.randomUUID(),
+            socketId: socket?.id ?? "",
+          });
+        } else {
+          console.error("Registration failed:", await response.text());
+        }
+      } catch (error) {
+        console.error("Error during registration:", error);
+      }
+    }
+  };
+  const handleLogin = async () => {
+    if (input.trim() && password.trim()) {
+      try {
+        const response = await fetch("http://localhost:4000/api/auth/login", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            username: input,
+            password: password,
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log("Login successful:", data);
+          joinChat({
+            username: input,
+            id: crypto.randomUUID(),
+            socketId: socket?.id ?? "",
+          });
+          // console.log("join chat");
+        } else {
+          console.error("Login failed:", await response.text());
+        }
+      } catch (error) {
+        console.error("Error during login:", error);
+      }
+    }
+  };
   return (
     <div className="relative h-screen flex items-center justify-center bg-gray-100">
       <div className="w-full max-w-md bg-white rounded shadow-md p-6">
@@ -120,21 +183,22 @@ export default function Chat() {
               className="border rounded w-full px-4 py-2 mb-2 text-black"
             />
             <input
-              placeholder="password"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               className="border rounded w-full px-4 py-2 mb-2 text-black"
             />
             <button
-              onClick={() => {
-                if (input.trim()) {
-                  joinChat({
-                    username: input,
-                    id: crypto.randomUUID(),
-                    socketId: socket?.id ?? "",
-                  });
-                }
-              }}
+              // onClick={() => {
+              //   if (input.trim()) {
+              //     joinChat({
+              //       username: input,
+              //       id: crypto.randomUUID(),
+              //       socketId: socket?.id ?? "",
+              //     });
+              //   }
+              // }}
+              onClick={handleRegister}
               className="bg-blue-500 text-white w-full px-4 py-2 rounded hover:bg-blue-600"
             >
               Register
@@ -152,21 +216,22 @@ export default function Chat() {
               className="border rounded w-full px-4 py-2 mb-2 text-black"
             />
             <input
-              placeholder="password"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               className="border rounded w-full px-4 py-2 mb-2 text-black"
             />
             <button
-              onClick={() => {
-                if (input.trim()) {
-                  joinChat({
-                    username: input,
-                    id: crypto.randomUUID(),
-                    socketId: socket?.id ?? "",
-                  });
-                }
-              }}
+              // onClick={() => {
+              //   if (input.trim()) {
+              //     joinChat({
+              //       username: input,
+              //       id: crypto.randomUUID(),
+              //       socketId: socket?.id ?? "",
+              //     });
+              //   }
+              // }}
+              onClick={handleLogin}
               className="bg-blue-500 text-white w-full px-4 py-2 rounded hover:bg-blue-600"
             >
               Login
