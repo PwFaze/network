@@ -17,15 +17,15 @@ const server = http.createServer(app);
 app.use(cors());
 app.use(express.json());
 
-app.use("/api/auth", auth);
-app.use("/api/groups", groups);
-
 const io = new Server(server, {
   cors: {
     origin: "http://localhost:3000",
     methods: ["GET", "POST"],
   },
 });
+app.use("/api/auth", auth);
+app.use("/api/groups", groups(io));
+
 
 connectDB();
 setupSocketHandlers(io);

@@ -1,8 +1,11 @@
 import express, { Router, Request, Response, NextFunction, RequestHandler } from 'express';
 import { createGroup, getGroups } from '../handlers/groups';
+import { Server } from "socket.io";
 
 const router: Router = express.Router();
 
-router.post("/", createGroup as RequestHandler);
-router.get("/", getGroups as RequestHandler);
-export default router;
+export default (io: Server) => {
+    router.post("/", createGroup(io) as RequestHandler); // Pass the io instance
+    router.get("/", getGroups as RequestHandler);
+    return router;
+};

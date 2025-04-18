@@ -24,7 +24,6 @@ export default function Chat() {
   const [view, setView] = useState<"friends" | "groups">("friends");
   const [isMobile, setIsMobile] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false); // Track authentication state
-
   // const groups = [
   //   { name: "Family" },
   //   { name: "Work" },
@@ -58,6 +57,22 @@ export default function Chat() {
       setGroups([]); // fallback
     }
   };
+
+  useEffect(() => {
+    // Listen for the "groupCreated" event
+    if (socket) {
+      socket.on("groupCreated", () => {
+        console.log("Group created, fetching groups...");
+        if (userId) {
+          fetchGroups(userId); // Fetch updated groups
+        }
+      });
+    }
+
+    return () => {
+      socket?.off("groupCreated"); // Clean up the listener
+    };
+  }, [socket]);
 
 
   useEffect(() => {
