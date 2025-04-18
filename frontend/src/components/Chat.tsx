@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Sidebar from "./Sidebar";
 import ContactList from "./ContactList";
 import ChatWindow from "./ChatWindow";
@@ -36,7 +36,7 @@ export default function Chat() {
 
   const [groups, setGroups] = useState<any[]>([]);
 
-  const fetchGroups = async (userId: string) => {
+  const fetchGroups = useCallback(async (userId: string) => {
     try {
       const response = await fetch(`http://localhost:4000/api/groups?user=${userId}`);
       if (response.ok) {
@@ -56,23 +56,28 @@ export default function Chat() {
       console.error("Error fetching groups:", error);
       setGroups([]); // fallback
     }
-  };
+  }, []);
 
   useEffect(() => {
-    // Listen for the "groupCreated" event
-    if (socket) {
-      socket.on("groupCreated", () => {
-        console.log("Group created, fetching groups...");
-        if (userId) {
-          fetchGroups(userId); // Fetch updated groups
+    if (socket && userId) {
+      // Remove any existing listeners to prevent duplicates
+      socket.off("groupCreated");
+      
+      // Add the new listener
+      socket.on("groupCreated", (data) => {
+        console.log("Group created event received:", data);
+        // Check if the current user is a participant
+        if (data.group.participants.includes(userId)) {
+          console.log("Fetching groups for user:", userId);
+          fetchGroups(userId);
         }
       });
+  
+      return () => {
+        socket.off("groupCreated");
+      };
     }
-
-    return () => {
-      socket?.off("groupCreated"); // Clean up the listener
-    };
-  }, [socket]);
+  }, [socket, userId, fetchGroups]); // Add all dependencies
 
 
   useEffect(() => {
@@ -189,10 +194,10 @@ export default function Chat() {
         if (response.ok) {
           const data = await response.json();
           console.log("Login successful:", data);
-          console.log("Token:", data.token);
+          localStorage.setItem("token", data.token);
+          localStorage.setItem("user", JSON.stringify({ id: data._id }));
           setIsAuthenticated(true);
-          fetchGroups(data._id); // Pass user ID explicitly
-          localStorage.setItem("token", data.token); // persists even after page reload
+          fetchGroups(data._id);
           joinChat({
             username: input,
             id: data._id,
