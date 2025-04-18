@@ -27,11 +27,6 @@ const MessageSchema = new Schema({
     ref: "Message",
     description: "ID of the message that this message is a reply to",
   },
-  reactions: {
-    type: [Map<String, String>],
-    description: "Array of reaction maps",
-    default: [],
-  },
 });
 type MessageType = InferSchemaType<typeof MessageSchema>;
 export const Message = model("Message", MessageSchema);
