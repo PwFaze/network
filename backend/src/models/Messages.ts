@@ -7,10 +7,10 @@ const MessageSchema = new Schema({
     required: true,
     description: "ID of the sender",
   },
-  chat: {
-    type: [String],
+  receiver: {
+    type: Types.ObjectId,
     required: true,
-    description: "ID of the chat",
+    description: "ID of the receiver/group of the message",
   },
   content: {
     type: String,
@@ -21,6 +21,16 @@ const MessageSchema = new Schema({
     type: Date,
     required: true,
     description: "Timestamp of the message",
+  },
+  repliedMessage: {
+    type: Types.ObjectId,
+    ref: "Message",
+    description: "ID of the message that this message is a reply to",
+  },
+  reactions: {
+    type: [Map<String, String>],
+    description: "Array of reaction maps",
+    default: [],
   },
 });
 type MessageType = InferSchemaType<typeof MessageSchema>;

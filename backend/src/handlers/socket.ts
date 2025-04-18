@@ -24,7 +24,6 @@ export const setupSocketHandlers = (io: Server) => {
       //   });
       // }
     });
-
     socket.on("disconnect", () => {
       const index = users.findIndex((user) => user.socketId === socket.id);
       if (index !== -1) users.splice(index, 1);
