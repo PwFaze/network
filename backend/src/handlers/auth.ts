@@ -21,7 +21,7 @@ const sendTokenResponse = (user: any, statusCode: number, res: Response) => {
     res
     .status(statusCode)
     // .cookie("token", token, options)
-    .json({ success: true, _id:user._id, name: user.name, email:user.email, token });
+    .json({ success: true, _id:user._id, name: user.name, token });
 };
 
 export const register = async (req: Request, res: Response) => {

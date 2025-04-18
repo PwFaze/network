@@ -25,12 +25,40 @@ export default function Chat() {
   const [isMobile, setIsMobile] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false); // Track authentication state
 
-  const groups = [
-    { name: "Family" },
-    { name: "Work" },
-    { name: "lndsc" },
-    { name: "dscdsc" },
-  ];
+  // const groups = [
+  //   { name: "Family" },
+  //   { name: "Work" },
+  //   { name: "lndsc" },
+  //   { name: "dscdsc" },
+  // ];
+  const currUser = localStorage.getItem("user");
+  const userId = currUser ? JSON.parse(currUser).id : null;
+  console.log("userId", userId);
+
+  const [groups, setGroups] = useState<any[]>([]);
+
+  const fetchGroups = async (userId: string) => {
+    try {
+      const response = await fetch(`http://localhost:4000/api/groups?user=${userId}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && Array.isArray(data.groups)) {
+          setGroups(data.groups); // Set the groups array from the nested property
+          console.log("Fetched groups:", data.groups);
+        } else {
+          console.error("Invalid groups data:", data);
+          setGroups([]); // fallback to empty array
+        }
+      } else {
+        console.error("Failed to fetch groups:", await response.text());
+        setGroups([]); // fallback
+      }
+    } catch (error) {
+      console.error("Error fetching groups:", error);
+      setGroups([]); // fallback
+    }
+  };
+
 
   useEffect(() => {
     const unsubscribe = onMessage((msg) => {
@@ -45,6 +73,12 @@ export default function Chat() {
     });
     return unsubscribe;
   }, [onMessage]);
+
+  useEffect(() => {
+    if (userId) {
+      fetchGroups(userId);
+    }
+  }, [userId]);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -106,12 +140,14 @@ export default function Chat() {
         if (response.ok) {
           const data = await response.json();
           console.log("Registration successful:", data);
+          localStorage.setItem("token", data.token); 
+          setIsAuthenticated(true);
+          fetchGroups(data._id); // Pass user ID explicitly
           joinChat({
             username: input,
-            id: crypto.randomUUID(),
+            id: data._id,
             socketId: socket?.id ?? "",
           });
-          setIsAuthenticated(true); // Set authenticated state
         } else {
           console.error("Registration failed:", await response.text());
         }
@@ -138,12 +174,13 @@ export default function Chat() {
         if (response.ok) {
           const data = await response.json();
           console.log("Login successful:", data);
-          setIsAuthenticated(true); // Set authenticated state
           console.log("Token:", data.token);
+          setIsAuthenticated(true);
+          fetchGroups(data._id); // Pass user ID explicitly
           localStorage.setItem("token", data.token); // persists even after page reload
           joinChat({
             username: input,
-            id: crypto.randomUUID(),
+            id: data._id,
             socketId: socket?.id ?? "",
           });
         } else {

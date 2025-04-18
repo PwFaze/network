@@ -34,3 +34,31 @@ export const createGroup = async (req: Request, res: Response) => {
         }
     }
 }
+
+export const getGroups = async (req: Request, res: Response) => {
+    // console.log(req.headers);
+    // const allGroups = await Chat.find({});
+    // console.log("allGroups", allGroups);
+    console.log("test");
+    try {
+        const userId = req.query.user?.toString(); // Ensure userId is a string
+        if (!userId) {
+            return res.status(401).json({ success: false, msg: "Unauthorized" });
+        }
+        const mongoose = require('mongoose');
+        if (!mongoose.Types.ObjectId.isValid(userId)) {
+            return res.status(400).json({ success: false, msg: "Invalid user ID" });
+        }
+        if (!userId) {
+            return res.status(401).json({ success: false, msg: "Unauthorized" });
+        }
+
+        const groups = await Chat.find({ participants: { $in: [userId] } }).populate("participants").exec();
+        res.status(200).json({ success: true, groups });
+    } catch (err: unknown) {
+        res.status(400).json({ success: false });
+        if (err instanceof Error) {
+            console.log(err.stack);
+        }
+    }
+}
