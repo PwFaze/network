@@ -43,7 +43,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const joinChat = useCallback((user: User) => {
-    localStorage.clear();
+    console.log("joinChat", user);
 
     user.socketId = socket.id;
     localStorage.setItem("user", JSON.stringify(user));

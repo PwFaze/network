@@ -7,10 +7,15 @@ import { connectDB } from "./db/db";
 import { setupSocketHandlers } from "./handlers/socket";
 
 dotenv.config();
+
+import auth from "./routes/auth";
+import groups from "./routes/groups";
+
 const app = express();
 const server = http.createServer(app);
 
 app.use(cors());
+app.use(express.json());
 
 const io = new Server(server, {
   cors: {
@@ -18,6 +23,9 @@ const io = new Server(server, {
     methods: ["GET", "POST"],
   },
 });
+app.use("/api/auth", auth);
+app.use("/api/groups", groups(io));
+
 
 connectDB();
 setupSocketHandlers(io);
