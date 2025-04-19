@@ -6,11 +6,18 @@ const MessageSchema = new Schema({
     type: Types.ObjectId,
     required: true,
     description: "ID of the sender",
+    ref: "User",
   },
   receiver: {
     type: Types.ObjectId,
     required: true,
     description: "ID of the receiver/group of the message",
+    refPath: "receiverModel",
+  },
+  receiverModel: {
+    type: String,
+    required: true,
+    enum: ["User", "Group"],
   },
   content: {
     type: String,

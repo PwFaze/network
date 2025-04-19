@@ -1,18 +1,15 @@
-import { User } from "./UserDTO";
+import { UserDTO } from "./UserDTO";
 export interface GroupChat {
   name: string;
-  id: string;
-  participants: {
-    user: string;
-    socket: string;
-  }[];
+  _id: string;
+  participants: UserDTO[];
 }
-export interface Message {
+export interface MessageDTO {
   id: string;
-  senderId: User;
-  groupId?: string; // ID of the group chat (if it's a group message)
-  receiver?: User; // receiver
+  sender: UserDTO;
+  group?: GroupChat;
+  receiver?: UserDTO; // receiver
   content: string;
   timestamp: Date;
 }
-export type ChatTarget = GroupChat | User;
+export type ChatTarget = GroupChat | UserDTO;

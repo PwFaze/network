@@ -6,9 +6,10 @@ const GroupSchema = new Schema(
     participants: {
       type: [Types.ObjectId],
       required: true,
+      ref: "User",
       description: "Array of user IDs participating in the chat",
     },
-    chatName: {
+    name: {
       type: String,
       default: null,
       description:
@@ -19,5 +20,5 @@ const GroupSchema = new Schema(
 );
 type GroupType = InferSchemaType<typeof GroupSchema>;
 
-export const Chat = model("Chat", GroupSchema);
+export const Group = model("Group", GroupSchema);
 export { GroupType };

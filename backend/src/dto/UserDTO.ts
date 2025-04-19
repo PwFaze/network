@@ -1,4 +1,4 @@
-export interface User {
+export interface UserDTO {
   id: string;
   username: string;
   socketId?: string;

@@ -1,6 +1,6 @@
 import express from "express";
 import cors from "cors";
-import { Server, Socket } from "socket.io";
+import { Server } from "socket.io";
 import http from "http";
 import dotenv from "dotenv";
 import { connectDB } from "./db/db";
@@ -10,6 +10,7 @@ dotenv.config();
 
 import auth from "./routes/auth";
 import groups from "./routes/groups";
+import messages from "./routes/messages";
 
 const app = express();
 const server = http.createServer(app);
@@ -25,7 +26,7 @@ const io = new Server(server, {
 });
 app.use("/api/auth", auth);
 app.use("/api/groups", groups(io));
-
+app.use("/api/messages", messages);
 
 connectDB();
 setupSocketHandlers(io);

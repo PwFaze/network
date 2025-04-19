@@ -7,15 +7,15 @@ const UserSchema = new Schema({
   username: {
     type: String,
     required: true,
-    unique: true
+    unique: true,
   },
   password: {
     type: String,
-    required: true
+    required: true,
   },
   groupIds: {
     type: [Types.ObjectId],
-    ref: "Chat",
+    ref: "Group",
     description: "Array of group IDs the user is participating in",
   },
 });
@@ -41,7 +41,5 @@ UserSchema.methods.matchPassword = async function (enteredPassword: any) {
 };
 
 type UserType = InferSchemaType<typeof UserSchema>;
-const User = model("User", UserSchema);
-
-export default User;
+export const User = model("User", UserSchema);
 export { UserType };
