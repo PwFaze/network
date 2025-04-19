@@ -4,3 +4,8 @@ export interface User {
   socketId?: string;
   friends?: string[];
 }
+
+export interface AuthSchema {
+  username: string;
+  password: string;
+}

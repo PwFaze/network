@@ -1,7 +1,9 @@
-import React from "react";
+"use client";
+
+import React, { useEffect, useState } from "react";
 import { IoChatbubbleEllipsesOutline } from "react-icons/io5";
 import { GrGroup } from "react-icons/gr";
-import { useChat } from "@/hooks/useChat";
+import { useChat } from "@/context/ChatProvider";
 
 interface SidebarProps {
   view: string;
@@ -10,12 +12,21 @@ interface SidebarProps {
 
 export default function Sidebar({ view, setView }: SidebarProps) {
   const { user } = useChat();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return null; // Or render a skeleton UI
   return (
     <div className="md:w-1/12 w-full bg-white text-gray-800 flex md:flex-col justify-between md:justify-start p-4 px-8 md:pt-8 md:gap-12 md:items-center">
       <div className="md:w-20 w-10 md:h-20 h-10 rounded-full bg-sky-600 flex items-center justify-center shadow-md">
-        <h1 className="md:text-xl text-sm font-bold text-white">
-          {user.username}
-        </h1>
+        {user?.username ? (
+          <h1 className="text-sm font-bold text-white">{user.username}</h1>
+        ) : (
+          <div className="w-4 h-4 bg-gray-300 rounded-full animate-pulse" />
+        )}
       </div>
       <button onClick={() => setView("friends")}>
         <IoChatbubbleEllipsesOutline

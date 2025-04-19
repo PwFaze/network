@@ -4,319 +4,227 @@ import { useCallback, useEffect, useState } from "react";
 import Sidebar from "./Sidebar";
 import ContactList from "./ContactList";
 import ChatWindow from "./ChatWindow";
-import { GroupChat, Message } from "@/dto/Chat";
+import { Group, MessageDTO } from "@/dto/Chat";
 import { ChatTarget } from "@/dto/Chat";
-import { useChat } from "@/hooks/useChat";
-import { log } from "console";
+import { useChat } from "@/context/ChatProvider";
+import { useAuth } from "@/context/AuthProvider";
+import { getMessageByUserId } from "@/api/message";
+import { getUserGroups } from "@/api/user";
 
-function isGroupChat(chat: ChatTarget): chat is GroupChat {
-  return (chat as GroupChat).participants !== undefined;
+function isGroup(chat: ChatTarget): chat is Group {
+  return (chat as Group).participants !== undefined;
 }
 
 export default function Chat() {
-  const { user, joinChat, activeUsers, sendMessage, onMessage, socket } =
-    useChat();
-  const [input, setInput] = useState("");
-  const [password, setPassword] = useState("");
-  const [messages, setMessages] = useState<{ [chatId: string]: Message[] }>({});
+  const { user, activeUsers, sendMessage, onMessage, socket } = useChat();
+  const auth = useAuth();
+  const [messages, setMessages] = useState<{ [chatId: string]: MessageDTO[] }>(
+    {},
+  );
   const [selectedChat, setSelectedChat] = useState<ChatTarget | null>(null);
   const [message, setMessage] = useState("");
   const [view, setView] = useState<"friends" | "groups">("friends");
-  const [isMobile, setIsMobile] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false); // Track authentication state
-  // const groups = [
-  //   { name: "Family" },
-  //   { name: "Work" },
-  //   { name: "lndsc" },
-  //   { name: "dscdsc" },
-  // ];
-  const currUser = localStorage.getItem("user");
-  const userId = currUser ? JSON.parse(currUser).id : null;
-  console.log("userId", userId);
 
-  const [groups, setGroups] = useState<any[]>([]);
+  const [groups, setGroups] = useState<Group[]>([]);
 
   const fetchGroups = useCallback(async (userId: string) => {
-    try {
-      const response = await fetch(`http://localhost:4000/api/groups?user=${userId}`);
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success && Array.isArray(data.groups)) {
-          setGroups(data.groups); // Set the groups array from the nested property
-          console.log("Fetched groups:", data.groups);
-        } else {
-          console.error("Invalid groups data:", data);
-          setGroups([]); // fallback to empty array
-        }
-      } else {
-        console.error("Failed to fetch groups:", await response.text());
-        setGroups([]); // fallback
-      }
-    } catch (error) {
-      console.error("Error fetching groups:", error);
-      setGroups([]); // fallback
-    }
+    const response = await getUserGroups(userId);
+    const transformedGroups = response.groups.map((group: any) => ({
+      ...group,
+      id: group._id,
+      participants: group.participants.map((participant: User) => ({
+        ...participant,
+        id: participant._id,
+      })),
+    }));
+    setGroups(transformedGroups);
   }, []);
 
   useEffect(() => {
-    if (socket && userId) {
+    if (!socket) return;
+    const handleDeletedMessage = (messageId: string) => {
+      console.log(messageId);
+      setMessages((prev) => {
+        const updated = { ...prev };
+        for (const chatId in updated) {
+          updated[chatId] = updated[chatId].filter(
+            (msg) => msg.id !== messageId,
+          );
+        }
+        return updated;
+      });
+    };
+    socket.on("messageDeleted", handleDeletedMessage);
+
+    return () => {
+      socket.off("messageDeleted", handleDeletedMessage);
+    };
+  }, [socket, messages]);
+
+  useEffect(() => {
+    if (user?.id) {
+      fetchGroups(user?.id);
+    }
+  }, [user?.id, fetchGroups]);
+  useEffect(() => {
+    if (socket && user?.id) {
       // Remove any existing listeners to prevent duplicates
       socket.off("groupCreated");
-      
+
       // Add the new listener
       socket.on("groupCreated", (data) => {
         console.log("Group created event received:", data);
         // Check if the current user is a participant
-        if (data.group.participants.includes(userId)) {
-          console.log("Fetching groups for user:", userId);
-          fetchGroups(userId);
+        if (user?.id && data.group.participants.includes(user?.id)) {
+          console.log("Fetching groups for user:", user?.id);
+          fetchGroups(user?.id);
         }
       });
-  
+
       return () => {
         socket.off("groupCreated");
       };
     }
-  }, [socket, userId, fetchGroups]); // Add all dependencies
-
-
+  }, [socket, user?.id, fetchGroups]); // Add all dependencies
   useEffect(() => {
     const unsubscribe = onMessage((msg) => {
+      const isSender = msg.sender.id === user?.id;
+
+      // 🛑 Avoid adding duplicate if user already added it optimistically
+      if (msg.group && isSender) return;
+
       setMessages((prev) => {
-        const chatId = msg.sender.id;
+        const chatId =
+          msg.group?.id ?? (isSender ? msg.receiver?.id : msg.sender.id);
+        if (!chatId) return prev;
+
         const chatContent = prev[chatId] || [];
+
+        // Extra protection from duplicate ID
+        const alreadyExists = chatContent.some((m) => m.id === msg.id);
+        if (alreadyExists) return prev;
+
         return {
           ...prev,
           [chatId]: [...chatContent, msg],
         };
       });
     });
-    return unsubscribe;
-  }, [onMessage]);
 
-  useEffect(() => {
-    if (userId) {
-      fetchGroups(userId);
-    }
-  }, [userId]);
-
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
-  }, []);
+    return () => unsubscribe();
+  }, [onMessage, user?.id]);
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!selectedChat || message.trim() === "") return;
-
-    const messageData: Message = {
+    if (!selectedChat || message.trim() === "" || !user) return;
+    const messageData: MessageDTO = {
       id: crypto.randomUUID(),
       sender: user,
       content: message,
       timestamp: new Date(),
     };
 
-    const chatId = selectedChat.id;
+    if (isGroup(selectedChat)) {
+      const fullGroup = groups.find((g) => g.id === selectedChat.id);
 
-    if (isGroupChat(selectedChat)) {
-      messageData.groupId = chatId;
+      if (fullGroup && fullGroup.participants?.length) {
+        const enrichedParticipants = fullGroup.participants.map(
+          (participant) => {
+            const active = activeUsers.find((u) => u.id === participant.id);
+            return active ?? participant;
+          },
+        );
+
+        messageData.group = {
+          ...fullGroup,
+          participants: enrichedParticipants,
+        };
+      } else {
+        console.warn("Group not found or missing participants");
+      }
     } else {
-      messageData.receiver = selectedChat;
+      const updatedReceiver = activeUsers.find((u) => u.id === selectedChat.id);
+      messageData.receiver = updatedReceiver ?? selectedChat;
     }
-
-    // Send via socket or server
     sendMessage(messageData);
-
-    // Optimistically update UI
-    setMessages((prev) => {
-      const chatMessages = prev[chatId] || [];
-      return {
-        ...prev,
-        [chatId]: [...chatMessages, messageData],
-      };
-    });
 
     setMessage("");
   };
+  useEffect(() => {
+    const fetchMessages = async () => {
+      if (auth && user) {
+        try {
+          const data = await getMessageByUserId(user.id);
+          const transformedMessages: { [chatId: string]: MessageDTO[] } =
+            data.messages.reduce(
+              (acc: { [chatId: string]: MessageDTO[] }, m: any) => {
+                let chatId: string;
 
-  const handleRegister = async () => {
-    if (input.trim() && password.trim()) {
-      try {
-        const response = await fetch("http://localhost:4000/api/auth/register", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            username: input,
-            password: password,
-          }),
-        });
-        if (response.ok) {
-          const data = await response.json();
-          console.log("Registration successful:", data);
-          localStorage.setItem("token", data.token); 
-          setIsAuthenticated(true);
-          fetchGroups(data._id); // Pass user ID explicitly
-          joinChat({
-            username: input,
-            id: data._id,
-            socketId: socket?.id ?? "",
-          });
-        } else {
-          console.error("Registration failed:", await response.text());
+                if (m.sender?._id === user.id) {
+                  // User is the sender -> use receiver's ID (could be user or group)
+                  chatId = m.receiver._id;
+                } else if (m.receiver?._id === user.id) {
+                  // User is the receiver -> use sender's ID
+                  chatId = m.sender._id;
+                } else {
+                  // Neither sender nor receiver is the user -> group message
+                  chatId = m.receiver._id;
+                }
+
+                if (!acc[chatId]) {
+                  acc[chatId] = [];
+                }
+
+                acc[chatId].push({
+                  id: m._id,
+                  sender: {
+                    ...m.sender,
+                    id: m.sender._id,
+                  },
+                  receiver: {
+                    ...m.receiver,
+                    id: m.receiver._id,
+                  },
+                  content: m.content,
+                  timestamp: m.timestamp,
+                });
+
+                return acc;
+              },
+              {},
+            );
+
+          setMessages(transformedMessages);
+        } catch (err) {
+          console.error("Failed to fetch messages:", err);
         }
-      } catch (error) {
-        console.error("Error during registration:", error);
       }
-    }
-  };
+    };
 
-  const handleLogin = async () => {
-    if (input.trim() && password.trim()) {
-      try {
-        const response = await fetch("http://localhost:4000/api/auth/login", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            username: input,
-            password: password,
-          }),
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          console.log("Login successful:", data);
-          localStorage.setItem("token", data.token);
-          localStorage.setItem("user", JSON.stringify({ id: data._id }));
-          setIsAuthenticated(true);
-          fetchGroups(data._id);
-          joinChat({
-            username: input,
-            id: data._id,
-            socketId: socket?.id ?? "",
-          });
-        } else {
-          console.error("Login failed:", await response.text());
-        }
-      } catch (error) {
-        console.error("Error during login:", error);
-      }
-    }
-  };
-
-  const [tab, setTab] = useState<"register" | "login">("register");
+    fetchMessages();
+  }, [auth, user]);
   return (
     <div className="relative h-screen">
-      {!isAuthenticated ? ( // Show authentication form if not authenticated
-        <div className="absolute inset-0 z-50 flex flex-col items-center text-black justify-center bg-white bg-opacity-90 backdrop-blur-sm">
-          <div className="w-full max-w-md bg-white rounded shadow-md p-6">
-            <div className="flex justify-center mb-4">
-              <button
-                onClick={() => setTab("register")}
-                className={`px-4 py-2 rounded-tl rounded-tr ${
-                  tab === "register"
-                    ? "bg-blue-500 text-white"
-                    : "bg-gray-200 text-black"
-                }`}
-              >
-                Register
-              </button>
-              <button
-                onClick={() => setTab("login")}
-                className={`px-4 py-2 rounded-tl rounded-tr ${
-                  tab === "login"
-                    ? "bg-blue-500 text-white"
-                    : "bg-gray-200 text-black"
-                }`}
-              >
-                Login
-              </button>
-            </div>
-
-            {tab === "register" && (
-              <div>
-                <h2 className="text-2xl mb-4 text-center text-black">
-                  Register
-                </h2>
-                <input
-                  placeholder="Username"
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  className="border rounded w-full px-4 py-2 mb-2 text-black"
-                />
-                <input
-                  placeholder="Password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="border rounded w-full px-4 py-2 mb-2 text-black"
-                />
-                <button
-                  onClick={handleRegister}
-                  className="bg-blue-500 text-white w-full px-4 py-2 rounded hover:bg-blue-600"
-                >
-                  Register
-                </button>
-              </div>
-            )}
-
-            {tab === "login" && (
-              <div>
-                <h2 className="text-2xl mb-4 text-center text-black">Login</h2>
-                <input
-                  placeholder="Username"
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  className="border rounded w-full px-4 py-2 mb-2 text-black"
-                />
-                <input
-                  placeholder="Password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="border rounded w-full px-4 py-2 mb-2 text-black"
-                />
-                <button
-                  onClick={handleLogin}
-                  className="bg-blue-500 text-white w-full px-4 py-2 rounded hover:bg-blue-600"
-                >
-                  Login
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      ) : (
-        // Show chat components if authenticated
-        <div className="h-full flex flex-col md:flex-row filter-none">
-          <Sidebar setView={setView} view={view} />
-          {(!isMobile || (isMobile && !selectedChat)) && (
-            <ContactList
-              view={view}
-              friends={activeUsers}
-              groups={groups}
-              setSelectedChat={setSelectedChat}
-            />
-          )}
-          {(!isMobile || (isMobile && selectedChat)) && (
-            <ChatWindow
-              isMobile={isMobile}
-              selectedChat={selectedChat}
-              chat={messages[selectedChat?.id ?? ""]}
-              message={message}
-              setMessage={setMessage}
-              handleSendMessage={handleSendMessage}
-              setSelectedChat={setSelectedChat}
-            />
-          )}
-        </div>
-      )}
+      <div className="h-full flex flex-col md:flex-row filter-none">
+        <Sidebar setView={setView} view={view} />
+        <ContactList
+          view={view}
+          friends={activeUsers}
+          groups={groups}
+          selectedChat={selectedChat}
+          setSelectedChat={setSelectedChat}
+        />
+        <ChatWindow
+          selectedChat={selectedChat}
+          chat={messages[selectedChat?.id ?? ""]}
+          setMessages={setMessages}
+          message={message}
+          setMessage={setMessage}
+          handleSendMessage={handleSendMessage}
+          setSelectedChat={setSelectedChat}
+        />
+      </div>
     </div>
   );
 }
