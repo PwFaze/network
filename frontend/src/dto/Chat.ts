@@ -1,18 +1,15 @@
 import { User } from "./User";
-export interface GroupChat {
+export interface Group {
   name: string;
   id: string;
-  participants: {
-    user: string;
-    socket: string;
-  }[];
+  participants: User[];
 }
-export interface Message {
+export interface MessageDTO {
   id: string;
   sender: User;
-  groupId?: string; // group
+  group?: Group;
   receiver?: User; // receiver
   content: string;
   timestamp: Date;
 }
-export type ChatTarget = GroupChat | User;
+export type ChatTarget = Group | User;

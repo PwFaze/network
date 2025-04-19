@@ -1,11 +1,13 @@
+"use client";
+
 import React from "react";
-import { ChatTarget, GroupChat, Message } from "@/dto/Chat";
+import { ChatTarget, Group, MessageDTO } from "@/dto/Chat";
 import { User } from "@/dto/User";
 import ChatBubble from "./ChatBubble";
-import { useChat } from "@/hooks/useChat";
+import { useChat } from "@/context/ChatProvider";
 
-function isGroupChat(chat: ChatTarget): chat is GroupChat {
-  return (chat as GroupChat).participants !== undefined;
+function isGroup(chat: ChatTarget): chat is Group {
+  return (chat as Group).participants !== undefined;
 }
 
 function isUser(chat: ChatTarget): chat is User {
@@ -13,44 +15,77 @@ function isUser(chat: ChatTarget): chat is User {
 }
 
 interface ChatWindowProps {
-  isMobile: boolean;
-  selectedChat: GroupChat | User | null;
-  chat: Message[];
+  selectedChat: Group | User | null;
+  chat: MessageDTO[];
+  setMessages: React.Dispatch<
+    React.SetStateAction<{ [chatId: string]: MessageDTO[] }>
+  >;
   message: string;
   setMessage: React.Dispatch<React.SetStateAction<string>>;
   handleSendMessage: (e: React.FormEvent) => void;
-  setSelectedChat: React.Dispatch<
-    React.SetStateAction<GroupChat | User | null>
-  >;
+  setSelectedChat: React.Dispatch<React.SetStateAction<Group | User | null>>;
 }
 
 export default function ChatWindow({
-  isMobile,
   selectedChat,
   chat,
+  setMessages,
   message,
   setMessage,
   handleSendMessage,
   setSelectedChat,
 }: ChatWindowProps) {
-  const { user } = useChat();
+  const { user, socket, activeUsers } = useChat();
+  const handleDeleteMessage = (id: string) => {
+    if (!selectedChat || !user) return;
+    console.log(selectedChat);
+    if ((selectedChat as Group).participants) {
+      const fullGroup = selectedChat as Group;
+      if (fullGroup && fullGroup.participants?.length) {
+        const enrichedParticipants = fullGroup.participants.map(
+          (participant) => {
+            const active = activeUsers.find((u) => u.id === participant.id);
+            return active ?? participant;
+          },
+        );
+
+        (selectedChat as Group).participants = enrichedParticipants;
+      } else {
+        console.warn("Group not found or missing participants");
+      }
+    }
+    socket?.emit("deleteMessage", {
+      messageId: id,
+      userId: user.id,
+      receiver: selectedChat,
+    });
+    setMessages((prev) => {
+      const chatId = selectedChat.id;
+      const filtered = (prev[chatId] || []).filter((msg) => msg.id !== id);
+      return {
+        ...prev,
+        [chatId]: filtered,
+      };
+    });
+  };
 
   return (
-    <div className="flex-1 bg-slate-50 p-4 relative flex flex-col md:p-4 md:py-12">
+    <div
+      className={`${selectedChat ? "flex" : "hidden md:flex"} flex-1 bg-slate-50 p-4 relative flex flex-col md:p-4 md:py-12`}
+    >
       {/* Chat Header */}
       <div className="bg-slate-50 text-gray-800 text-xl font-semibold mb-4">
         {selectedChat ? (
           <div className="flex items-center gap-2">
-            {isMobile && (
-              <button
-                className="text-gray-800 text-2xl"
-                onClick={() => setSelectedChat(null)}
-              >
-                ←
-              </button>
-            )}
+            <button
+              className="md:hidden text-gray-800 text-2xl"
+              onClick={() => setSelectedChat(null)}
+            >
+              ←
+            </button>
+
             <div>
-              {isGroupChat(selectedChat)
+              {isGroup(selectedChat)
                 ? selectedChat.name
                 : isUser(selectedChat)
                   ? selectedChat.username
@@ -78,11 +113,12 @@ export default function ChatWindow({
           {chat?.map((msg, i) => (
             <li key={i} className="mb-1">
               <ChatBubble
-                message={msg.content}
+                message={msg}
+                onDelete={handleDeleteMessage}
                 senderName={
-                  msg.sender.id === user.id ? "Me" : msg.sender.username
+                  msg.sender.id === user?.id ? "Me" : msg.sender.username
                 }
-                isOwnMessage={msg.sender.id === user.id}
+                isOwnMessage={msg.sender.id === user?.id}
               />
             </li>
           ))}
