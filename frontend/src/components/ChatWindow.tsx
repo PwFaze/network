@@ -123,24 +123,6 @@ export default function ChatWindow({
                 </div>
               </>
             )}
-            <div>
-              {isGroup(selectedChat)
-                ? selectedChat.name
-                : isUser(selectedChat)
-                ? selectedChat.username
-                : "Unknown"}
-            </div>
-
-            {/* leave group button */}
-            {isGroup(selectedChat) && (
-              <button
-                className="text-sm bg-red-400 text-white px-2 py-1 rounded hover:bg-red-600"
-                onClick={handleLeaveGroup}
-              >
-                Leave
-              </button>
-            )}
-
             {/* Display online status */}
             {isUser(selectedChat) && (
               <div
