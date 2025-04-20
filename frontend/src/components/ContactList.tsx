@@ -32,10 +32,13 @@ export default function ContactList({
   useEffect(() => {
     if (view === "friends") {
       if (!friends) return;
+      const uniqueFriends = Array.from(
+        new Map(friends.map(friend => [friend.id, friend])).values()
+      );
       setFilteredFriends(
-        friends.filter((friend: User) =>
-          friend.username?.toLowerCase().includes(search.toLowerCase()),
-        ),
+        uniqueFriends.filter((friend: User) =>
+          friend.username?.toLowerCase().includes(search.toLowerCase())
+        )
       );
     } else {
       if (!groups) return;
