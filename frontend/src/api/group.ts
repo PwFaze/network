@@ -16,7 +16,7 @@ export const createGroup = async (groupName: string, selectedUsers: User[]) => {
       },
     );
 
-    if (response.status === 200) {
+    if (response.status === 201) {
       const data = response.data;
       console.log("Group created successfully:", data);
     } else {

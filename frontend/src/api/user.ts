@@ -56,3 +56,12 @@ export const loginUser = async (username: string, password: string) => {
     return null;
   }
 };
+
+export const getUsers = async () => {
+  try {
+    const response = await axios.get("http://localhost:4000/api/users/");
+    return response.data.success ? response.data : null;
+  } catch (error: unknown) {
+    console.error("Get users error", error);
+  }
+};

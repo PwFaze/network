@@ -1,5 +1,4 @@
 import { Server, Socket } from "socket.io";
-import { MessageDTO } from "../dto/ChatDTO";
 import { UserDTO } from "../dto/UserDTO";
 import { registerMessageHandler } from "./message";
 

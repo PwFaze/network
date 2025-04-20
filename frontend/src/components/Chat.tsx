@@ -9,7 +9,8 @@ import { ChatTarget } from "@/dto/Chat";
 import { useChat } from "@/context/ChatProvider";
 import { useAuth } from "@/context/AuthProvider";
 import { getMessageByUserId } from "@/api/message";
-import { getUserGroups } from "@/api/user";
+import { getUserGroups, getUsers } from "@/api/user";
+import { User } from "@/dto/User";
 
 function isGroup(chat: ChatTarget): chat is Group {
   return (chat as Group).participants !== undefined;
@@ -18,6 +19,7 @@ function isGroup(chat: ChatTarget): chat is Group {
 export default function Chat() {
   const { user, activeUsers, sendMessage, onMessage, socket } = useChat();
   const auth = useAuth();
+  const [users, setUsers] = useState<User[]>([]);
   const [messages, setMessages] = useState<{ [chatId: string]: MessageDTO[] }>(
     {},
   );
@@ -29,7 +31,7 @@ export default function Chat() {
 
   const fetchGroups = useCallback(async (userId: string) => {
     const response = await getUserGroups(userId);
-    const transformedGroups = response.groups.map((group: any) => ({
+    const transformedGroups = response.groups.map((group: Group) => ({
       ...group,
       id: group._id,
       participants: group.participants.map((participant: User) => ({
@@ -43,7 +45,7 @@ export default function Chat() {
   useEffect(() => {
     if (!socket) return;
     const handleDeletedMessage = (messageId: string) => {
-      console.log(messageId);
+      console.log("message deleated :", messageId);
       setMessages((prev) => {
         const updated = { ...prev };
         for (const chatId in updated) {
@@ -89,10 +91,7 @@ export default function Chat() {
   useEffect(() => {
     const unsubscribe = onMessage((msg) => {
       const isSender = msg.sender.id === user?.id;
-
-      // 🛑 Avoid adding duplicate if user already added it optimistically
-      if (msg.group && isSender) return;
-
+      console.log("Message Received :", msg);
       setMessages((prev) => {
         const chatId =
           msg.group?.id ?? (isSender ? msg.receiver?.id : msg.sender.id);
@@ -100,7 +99,6 @@ export default function Chat() {
 
         const chatContent = prev[chatId] || [];
 
-        // Extra protection from duplicate ID
         const alreadyExists = chatContent.some((m) => m.id === msg.id);
         if (alreadyExists) return prev;
 
@@ -152,24 +150,35 @@ export default function Chat() {
     setMessage("");
   };
   useEffect(() => {
+    const fetchUsers = async () => {
+      if (auth && user) {
+        try {
+          const data = await getUsers();
+          setUsers(data);
+          return data;
+        } catch (error: unknown) {
+          console.error("Error getting users :", error);
+        }
+      }
+    };
     const fetchMessages = async () => {
       if (auth && user) {
         try {
           const data = await getMessageByUserId(user.id);
           const transformedMessages: { [chatId: string]: MessageDTO[] } =
             data.messages.reduce(
-              (acc: { [chatId: string]: MessageDTO[] }, m: any) => {
+              (acc: { [chatId: string]: MessageDTO[] }, m: MessageDTO) => {
                 let chatId: string;
 
                 if (m.sender?._id === user.id) {
                   // User is the sender -> use receiver's ID (could be user or group)
-                  chatId = m.receiver._id;
+                  chatId = m.receiver?._id ?? "";
                 } else if (m.receiver?._id === user.id) {
                   // User is the receiver -> use sender's ID
-                  chatId = m.sender._id;
+                  chatId = m.sender?._id ?? "";
                 } else {
                   // Neither sender nor receiver is the user -> group message
-                  chatId = m.receiver._id;
+                  chatId = m.receiver?._id ?? "";
                 }
 
                 if (!acc[chatId]) {
@@ -177,14 +186,15 @@ export default function Chat() {
                 }
 
                 acc[chatId].push({
-                  id: m._id,
+                  id: m._id ?? "",
                   sender: {
                     ...m.sender,
-                    id: m.sender._id,
+                    id: m.sender._id ?? "",
                   },
                   receiver: {
                     ...m.receiver,
-                    id: m.receiver._id,
+                    username: m.receiver?.username ?? "",
+                    id: m.receiver?._id ?? "",
                   },
                   content: m.content,
                   timestamp: m.timestamp,
@@ -201,7 +211,7 @@ export default function Chat() {
         }
       }
     };
-
+    fetchUsers();
     fetchMessages();
   }, [auth, user]);
   return (

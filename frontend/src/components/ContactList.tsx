@@ -31,6 +31,10 @@ export default function ContactList({
   useEffect(() => {
     if (view === "friends") {
       if (!friends) return;
+      if (!search) {
+        setFilteredFriends(friends);
+        return;
+      }
       setFilteredFriends(
         friends.filter((friend: User) =>
           friend.username?.toLowerCase().includes(search.toLowerCase()),
@@ -38,6 +42,10 @@ export default function ContactList({
       );
     } else {
       if (!groups) return;
+      if (!search) {
+        setFilteredGroups(groups);
+        return;
+      }
       setFilteredGroups(
         groups.filter((group) =>
           group.name?.toLowerCase().includes(search.toLowerCase()),

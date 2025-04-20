@@ -120,6 +120,7 @@ export const registerMessageHandler = (io: Server, socket: Socket) => {
       }
       if (group) {
         group.participants.forEach((participant) => {
+          console.log(participant);
           io.to(participant?.socketId ?? "").emit("chat message", msgData);
         });
       }

@@ -6,7 +6,7 @@ export const createGroup =
   (io: Server) => async (req: Request, res: Response) => {
     try {
       const { name, participants } = req.body;
-
+      console.log(name, participants);
       if (!name || !participants || participants.length === 0) {
         return res.status(400).json({
           success: false,
@@ -16,7 +16,7 @@ export const createGroup =
 
       const group = await Group.create({
         participants,
-        chatName: name,
+        name: name,
       });
 
       // Broadcast to all connected clients

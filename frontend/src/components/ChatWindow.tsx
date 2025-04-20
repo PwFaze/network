@@ -38,7 +38,6 @@ export default function ChatWindow({
   const { user, socket, activeUsers } = useChat();
   const handleDeleteMessage = (id: string) => {
     if (!selectedChat || !user) return;
-    console.log(selectedChat);
     if ((selectedChat as Group).participants) {
       const fullGroup = selectedChat as Group;
       if (fullGroup && fullGroup.participants?.length) {
@@ -68,7 +67,6 @@ export default function ChatWindow({
       };
     });
   };
-
   return (
     <div
       className={`${selectedChat ? "flex" : "hidden md:flex"} flex-1 bg-slate-50 p-4 relative flex flex-col md:p-4 md:py-12`}
@@ -86,7 +84,7 @@ export default function ChatWindow({
 
             <div>
               {isGroup(selectedChat)
-                ? selectedChat.name
+                ? `${selectedChat.name} (${selectedChat.participants.map((p) => p.username)})`
                 : isUser(selectedChat)
                   ? selectedChat.username
                   : "Unknown"}

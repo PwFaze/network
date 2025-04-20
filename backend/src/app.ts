@@ -11,6 +11,7 @@ dotenv.config();
 import auth from "./routes/auth";
 import groups from "./routes/groups";
 import messages from "./routes/messages";
+import users from "./routes/user";
 
 const app = express();
 const server = http.createServer(app);
@@ -27,6 +28,7 @@ const io = new Server(server, {
 app.use("/api/auth", auth);
 app.use("/api/groups", groups(io));
 app.use("/api/messages", messages);
+app.use("/api/users", users);
 
 connectDB();
 setupSocketHandlers(io);
