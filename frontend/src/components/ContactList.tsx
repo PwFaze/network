@@ -12,7 +12,6 @@ interface ContactListProps {
   groups: Group[];
   selectedChat: ChatTarget | null;
   setSelectedChat: React.Dispatch<React.SetStateAction<ChatTarget | null>>;
-  fetchGroups: (userId: string) => void;
 }
 
 export default function ContactList({
@@ -21,52 +20,35 @@ export default function ContactList({
   groups,
   selectedChat,
   setSelectedChat,
-  fetchGroups, // Add fetchGroups function here
 }: ContactListProps) {
   const [search, setSearch] = useState("");
-  const [filteredFriends, setFilteredFriends] = useState<User[]>([]);
-  const [filteredGroups, setFilteredGroups] = useState<Group[]>([]);
-  const { user, socket } = useChat();
+  const [filteredFriends, setFilteredFriends] = useState(friends);
+  const [filteredGroups, setFilteredGroups] = useState(groups);
+  const { user } = useChat();
 
   const [showCreateGroup, setShowCreateGroup] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<User[]>([]);
   const [groupName, setGroupName] = useState("");
-
   useEffect(() => {
     if (view === "friends") {
+      if (!friends) return;
+      const uniqueFriends = Array.from(
+        new Map(friends.map(friend => [friend.id, friend])).values()
+      );
       setFilteredFriends(
-        friends.filter((friend: User) =>
+        uniqueFriends.filter((friend: User) =>
           friend.username?.toLowerCase().includes(search.toLowerCase())
         )
       );
     } else {
-      if (!search) {
-        setFilteredGroups(groups);
-      } else {
-        setFilteredGroups(
-          groups.filter((group) =>
-            group.name?.toLowerCase().includes(search.toLowerCase())
-          )
-        );
-      }
+      if (!groups) return;
+      setFilteredGroups(
+        groups.filter((group) =>
+          group.name?.toLowerCase().includes(search.toLowerCase()),
+        ),
+      );
     }
-  }, [search, view, friends, groups]);
-
-  useEffect(() => {
-    if (!socket) return;
-
-    const handleGroupUpdated = (data: any) => {
-      if (data.type === "leave") {
-        fetchGroups(user?.id);
-      }
-    };
-
-    socket.on("groupUpdated", handleGroupUpdated);
-
-    return () => {
-      socket.off("groupUpdated", handleGroupUpdated);
-    };
-  }, [socket, user?.id, fetchGroups]);
+  }, [search, view, groups, friends]);
 
   const handleCreateGroup = async () => {
     if (!groupName.trim() || selectedUsers.length === 0) {
@@ -78,7 +60,6 @@ export default function ContactList({
     setGroupName("");
     setShowCreateGroup(false);
   };
-
   const toggleUserSelection = (user: User) => {
     if (selectedUsers.find((u) => u.id === user.id)) {
       setSelectedUsers(selectedUsers.filter((u) => u.id !== user.id));
@@ -89,9 +70,7 @@ export default function ContactList({
 
   return (
     <div
-      className={`${
-        selectedChat ? "hidden md:flex" : "md:flex"
-      } md:w-1/5 w-full bg-slate-100 border-x-2 border-gray-200 text-gray-800 p-6 md:pt-12 border-r flex-col h-full`}
+      className={`${selectedChat ? "hidden md:flex" : "md:flex"} md:w-1/5 w-full bg-slate-100 border-x-2 border-gray-200 text-gray-800 p-6 md:pt-12 border-r  flex-col h-full`}
     >
       <h1 className="md:text-3xl text-xl text-gray-800 font-bold md:mb-8 mb-4">
         {view === "groups" ? "Groups" : "Chat"}
@@ -118,29 +97,30 @@ export default function ContactList({
         {view === "groups"
           ? filteredGroups.map((group) => (
               <div
-                key={`group-${group.id}`}
+                key={group.id}
                 className="bg-white md:py-2 py-4 px-4 rounded-xl cursor-pointer"
                 onClick={() =>
                   setSelectedChat({
                     id: group.id,
+                    participants: group.participants || [],
                     name: group.name,
-                    participants: group.participants ?? [],
                   })
                 }
               >
                 {group.name}
               </div>
             ))
-          : filteredFriends?.map((friend) => {
-              if (!user || friend.id === user.id) return null;
+          : filteredFriends?.map((friend, index) => {
+              if (!user || friend.id === user.id) return null; // Use user from useChat
+
               return (
                 <div
-                  key={`friend-${friend.id}`}
-                  className="bg-white py-2 px-4 rounded-md flex items-center gap-4 cursor-pointer"
+                  key={index}
+                  className="bg-white py-2 px-4 h-fit rounded-md flex items-center gap-4 cursor-pointer"
                   onClick={() =>
                     setSelectedChat({
-                      id: friend.id,
-                      username: friend.username,
+                      id: friend.id, // Use friend's ID
+                      username: friend.username, // Use friend's username
                       socketId: friend.socketId,
                     })
                   }
@@ -152,7 +132,7 @@ export default function ContactList({
                       width: "10px",
                       height: "10px",
                       borderRadius: "50%",
-                      backgroundColor: friend.socketId ? "green" : "gray",
+                      backgroundColor: friend.socketId ? "green" : "grey",
                     }}
                   ></div>
                   {friend.username}
@@ -161,10 +141,10 @@ export default function ContactList({
             })}
       </div>
 
-      {(view === "groups" ? filteredGroups : filteredFriends).length === 0 && (
+      {(view === "groups" ? filteredGroups : (filteredFriends ?? [])).length ===
+        0 && (
         <div className="text-center text-gray-500 mt-4">No matches found</div>
       )}
-
       {showCreateGroup && (
         <CreateGroup
           handleCreateGroup={handleCreateGroup}
