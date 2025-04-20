@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { Group } from "../models/Groups";
 import { Server } from "socket.io";
+import mongoose from "mongoose";
 
 export const createGroup =
   (io: Server) => async (req: Request, res: Response) => {
@@ -16,8 +17,10 @@ export const createGroup =
 
       const group = await Group.create({
         participants,
-        chatName: name,
+        name: name,
       });
+
+      console.log("Created group:", group);
 
       // Broadcast to all connected clients
       io.emit("groupCreated", { group });
@@ -51,6 +54,9 @@ export const getGroups = async (req: Request, res: Response) => {
     const groups = await Group.find({ participants: { $in: [userId] } })
       .populate("participants")
       .exec();
+
+    console.log("Fetched groups:", groups);
+
     res.status(200).json({ success: true, groups });
   } catch (err: unknown) {
     res.status(400).json({ success: false });
@@ -58,4 +64,46 @@ export const getGroups = async (req: Request, res: Response) => {
       console.log(err.stack);
     }
   }
+};
+
+export const leaveGroup = (io: Server) => {
+  return async (req: Request, res: Response) => {
+    try {
+      const { groupId, userId } = req.params;
+      // console.log("typeof groupId:", mongoose.Types.ObjectId.isValid(groupId));
+      // console.log("typeof userId:", mongoose.Types.ObjectId.isValid(userId));
+
+      if (
+        !mongoose.Types.ObjectId.isValid(groupId) ||
+        !mongoose.Types.ObjectId.isValid(userId)
+      ) {
+        return res
+          .status(400)
+          .json({ success: false, msg: "Invalid groupId or userId" });
+      }
+
+      const group = await Group.findById(groupId);
+      if (!group) {
+        return res.status(404).json({ success: false, msg: "Group not found" });
+      }
+
+      if (!group.participants.some((id) => id.toString() === userId)) {
+        return res
+          .status(400)
+          .json({ success: false, msg: "User is not in the group" });
+      }
+
+      group.participants.pull(userId);
+      await group.save();
+
+      io.emit("groupUpdated", { groupId, type: "leave", userId });
+
+      return res
+        .status(200)
+        .json({ success: true, msg: "User left the group", group });
+    } catch (error) {
+      console.error("Leave group error:", error);
+      return res.status(500).json({ success: false, msg: "Server error" });
+    }
+  };
 };
