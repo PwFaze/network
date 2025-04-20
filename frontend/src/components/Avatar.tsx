@@ -2,9 +2,10 @@ import React from 'react';
 
 interface AvatarProps {
   username: string;
+  className?: string;
 }
 
-const Avatar: React.FC<AvatarProps> = ({ username }) => {
+const Avatar: React.FC<AvatarProps> = ({ username, className = "w-8 h-8 text-sm" }) => {
   const nameParts = username.trim().split(' ');
 
   const initials =
@@ -24,7 +25,7 @@ const Avatar: React.FC<AvatarProps> = ({ username }) => {
 
   return (
     <div
-      className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold ${randomColor}`}
+        className={`rounded-full flex items-center justify-center font-bold text-white ${randomColor} ${className}`}
     >
       {initials}
     </div>
