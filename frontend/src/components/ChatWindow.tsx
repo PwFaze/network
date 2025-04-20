@@ -24,6 +24,8 @@ interface ChatWindowProps {
   setMessage: React.Dispatch<React.SetStateAction<string>>;
   handleSendMessage: (e: React.FormEvent) => void;
   setSelectedChat: React.Dispatch<React.SetStateAction<Group | User | null>>;
+  repliedMessage: MessageDTO | null;
+  setRepliedMessage: React.Dispatch<React.SetStateAction<MessageDTO | null>>;
 }
 
 export default function ChatWindow({
@@ -34,6 +36,8 @@ export default function ChatWindow({
   setMessage,
   handleSendMessage,
   setSelectedChat,
+  repliedMessage,
+  setRepliedMessage,
 }: ChatWindowProps) {
   const { user, socket, activeUsers } = useChat();
   const handleDeleteMessage = (id: string) => {
@@ -68,7 +72,12 @@ export default function ChatWindow({
       };
     });
   };
-
+  const handleReplyMessage = (message: MessageDTO) => {
+    setRepliedMessage(message);
+    setMessage(`@${message.sender.username} `);
+  };
+  
+  
   return (
     <div
       className={`${selectedChat ? "flex" : "hidden md:flex"} flex-1 bg-slate-50 p-4 relative flex flex-col md:p-4 md:py-12`}
@@ -119,6 +128,7 @@ export default function ChatWindow({
                   msg.sender.id === user?.id ? "Me" : msg.sender.username
                 }
                 isOwnMessage={msg.sender.id === user?.id}
+                onReply={() => handleReplyMessage(msg)}
               />
             </li>
           ))}

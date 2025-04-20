@@ -11,5 +11,6 @@ export interface MessageDTO {
   receiver?: User; // receiver
   content: string;
   timestamp: Date;
+  repliedMessage?: MessageDTO;
 }
 export type ChatTarget = Group | User;

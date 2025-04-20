@@ -26,7 +26,7 @@ export default function Chat() {
   const [view, setView] = useState<"friends" | "groups">("friends");
 
   const [groups, setGroups] = useState<Group[]>([]);
-
+  const [repliedMessage, setRepliedMessage] = useState<MessageDTO | null>(null);
   const fetchGroups = useCallback(async (userId: string) => {
     const response = await getUserGroups(userId);
     const transformedGroups = response.groups.map((group: any) => ({
@@ -123,6 +123,7 @@ export default function Chat() {
       sender: user,
       content: message,
       timestamp: new Date(),
+      repliedMessage: repliedMessage ?? undefined,
     };
 
     if (isGroup(selectedChat)) {
@@ -150,6 +151,7 @@ export default function Chat() {
     sendMessage(messageData);
 
     setMessage("");
+    setRepliedMessage(null);
   };
   useEffect(() => {
     const fetchMessages = async () => {
@@ -223,6 +225,8 @@ export default function Chat() {
           setMessage={setMessage}
           handleSendMessage={handleSendMessage}
           setSelectedChat={setSelectedChat}
+          repliedMessage={repliedMessage}
+          setRepliedMessage={setRepliedMessage}
         />
       </div>
     </div>

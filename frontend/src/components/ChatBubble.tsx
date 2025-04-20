@@ -27,6 +27,12 @@ export default function ChatBubble({
       onClick={handleClick}
     >
       <div className="text-xs text-gray-500 mb-1">{senderName}</div>
+      {message.repliedMessage && (
+        <div className="border-l-4 border-gray-300 pl-2 mb-1">
+          <div className="text-xs text-gray-500">{message.repliedMessage.sender.username}</div>
+          <div className="text-sm text-gray-600">{message.repliedMessage.content}</div>
+        </div>
+      )}
       <div
         className={`max-w-xs px-4 py-2 rounded-lg whitespace-pre-wrap break-words ${
           isOwnMessage
