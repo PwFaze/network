@@ -5,6 +5,7 @@ import { ChatTarget, Group, MessageDTO } from "@/dto/Chat";
 import { User } from "@/dto/User";
 import ChatBubble from "./ChatBubble";
 import { useChat } from "@/context/ChatProvider";
+import Avatar from './Avatar';
 
 function isGroup(chat: ChatTarget): chat is Group {
   return (chat as Group).participants !== undefined;
@@ -92,7 +93,14 @@ export default function ChatWindow({
             >
               ←
             </button>
-
+            {selectedChat && (
+              <>
+                <Avatar username={isGroup(selectedChat) ? selectedChat.name : selectedChat.username} />
+                <div>
+                  {isGroup(selectedChat) ? selectedChat.name : selectedChat.username}
+                </div>
+              </>
+            )}
             <div>
               {isGroup(selectedChat)
                 ? selectedChat.name
@@ -134,6 +142,19 @@ export default function ChatWindow({
           ))}
         </ul>
       </div>
+      
+      {repliedMessage && (
+        <div className="mb-2 border-l-4 border-blue-400 pl-3 bg-white rounded text-sm text-gray-700 py-2">
+          <div className="text-xs text-gray-500">{repliedMessage.sender.username} said:</div>
+          <div>{repliedMessage.content}</div>
+          <button
+            className="text-xs text-blue-600 mt-1 underline"
+            onClick={() => setRepliedMessage(null)}
+          >
+            Cancel reply
+          </button>
+        </div>
+      )}
 
       <form onSubmit={handleSendMessage} className="p-4 flex gap-2">
         <input
