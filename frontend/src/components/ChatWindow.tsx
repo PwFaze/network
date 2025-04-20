@@ -101,13 +101,6 @@ export default function ChatWindow({
                 </div>
               </>
             )}
-            <div>
-              {isGroup(selectedChat)
-                ? selectedChat.name
-                : isUser(selectedChat)
-                  ? selectedChat.username
-                  : "Unknown"}
-            </div>
             {/* Display online status */}
             {isUser(selectedChat) && (
               <div
