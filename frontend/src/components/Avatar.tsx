@@ -21,11 +21,17 @@ const Avatar: React.FC<AvatarProps> = ({ username, className = "w-8 h-8 text-sm"
     'bg-rose-500'
   ];
 
-  const randomColor = backgroundColors[Math.floor(Math.random() * backgroundColors.length)];
+  // Generate a hash value based on the username
+  const hash = username.split('').reduce((acc, char) => {
+    return char.charCodeAt(0) + ((acc << 5) - acc);
+  }, 0);
+
+  // Use the hash value to select a color from the backgroundColors array
+  const randomColor = backgroundColors[Math.abs(hash % backgroundColors.length)];
 
   return (
     <div
-        className={`rounded-full flex items-center justify-center font-bold text-white ${randomColor} ${className}`}
+      className={`rounded-full flex items-center justify-center font-bold text-white ${randomColor} ${className}`}
     >
       {initials}
     </div>
