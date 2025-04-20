@@ -6,6 +6,7 @@ import { User } from "@/dto/User";
 import ChatBubble from "./ChatBubble";
 import { useChat } from "@/context/ChatProvider";
 import { leaveGroup } from "@/api/group";
+import Avatar from './Avatar';
 
 function isGroup(chat: ChatTarget): chat is Group {
   return (chat as Group).participants !== undefined;
@@ -25,6 +26,8 @@ interface ChatWindowProps {
   setMessage: React.Dispatch<React.SetStateAction<string>>;
   handleSendMessage: (e: React.FormEvent) => void;
   setSelectedChat: React.Dispatch<React.SetStateAction<Group | User | null>>;
+  repliedMessage: MessageDTO | null;
+  setRepliedMessage: React.Dispatch<React.SetStateAction<MessageDTO | null>>;
 }
 
 export default function ChatWindow({
@@ -35,6 +38,8 @@ export default function ChatWindow({
   setMessage,
   handleSendMessage,
   setSelectedChat,
+  repliedMessage,
+  setRepliedMessage,
 }: ChatWindowProps) {
   const { user, socket, activeUsers } = useChat();
 
@@ -87,6 +92,13 @@ export default function ChatWindow({
     }
   };
 
+
+  const handleReplyMessage = (message: MessageDTO) => {
+    setRepliedMessage(message);
+    setMessage(`@${message.sender.username} `);
+  };
+  
+  
   return (
     <div
       className={`${
@@ -103,7 +115,14 @@ export default function ChatWindow({
             >
               ←
             </button>
-
+            {selectedChat && (
+              <>
+                <Avatar username={isGroup(selectedChat) ? selectedChat.name : selectedChat.username} />
+                <div>
+                  {isGroup(selectedChat) ? selectedChat.name : selectedChat.username}
+                </div>
+              </>
+            )}
             <div>
               {isGroup(selectedChat)
                 ? selectedChat.name
@@ -150,11 +169,25 @@ export default function ChatWindow({
                   msg.sender.id === user?.id ? "Me" : msg.sender.username
                 }
                 isOwnMessage={msg.sender.id === user?.id}
+                onReply={() => handleReplyMessage(msg)}
               />
             </li>
           ))}
         </ul>
       </div>
+      
+      {repliedMessage && (
+        <div className="mb-2 border-l-4 border-blue-400 pl-3 bg-white rounded text-sm text-gray-700 py-2">
+          <div className="text-xs text-gray-500">{repliedMessage.sender.username} said:</div>
+          <div>{repliedMessage.content}</div>
+          <button
+            className="text-xs text-blue-600 mt-1 underline"
+            onClick={() => setRepliedMessage(null)}
+          >
+            Cancel reply
+          </button>
+        </div>
+      )}
 
       {/* send meassage */}
       <form onSubmit={handleSendMessage} className="p-4 flex gap-2">

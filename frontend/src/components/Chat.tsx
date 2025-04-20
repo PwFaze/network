@@ -25,26 +25,9 @@ export default function Chat() {
   const [selectedChat, setSelectedChat] = useState<ChatTarget | null>(null);
   const [message, setMessage] = useState("");
   const [view, setView] = useState<"friends" | "groups">("friends");
-
   const [groups, setGroups] = useState<Group[]>([]);
-
-  const resolveChatById = (id: string): ChatTarget | null => {
-    const group = groups.find((g) => g.id === id);
-    if (group) return group;
-    const friend = activeUsers.find((u) => u.id === id);
-    if (friend) return friend;
-    return null;
-  };
-
-  useEffect(() => {
-    if (selectedChat) {
-      const updated = resolveChatById(selectedChat.id);
-      if (updated) {
-        setSelectedChat(updated);
-      }
-    }
-  }, [groups, activeUsers]);
-
+  const [repliedMessage, setRepliedMessage] = useState<MessageDTO | null>(null);
+  
   const fetchGroups = useCallback(async (userId: string) => {
     const response = await getUserGroups(userId);
     if (!Array.isArray(response)) return;
@@ -146,6 +129,7 @@ export default function Chat() {
       sender: user,
       content: message,
       timestamp: new Date(),
+      repliedMessage: repliedMessage ?? undefined,
     };
 
     console.log(messageData);
@@ -175,6 +159,7 @@ export default function Chat() {
     sendMessage(messageData);
 
     setMessage("");
+    setRepliedMessage(null);
   };
 
   useEffect(() => {
@@ -251,6 +236,8 @@ export default function Chat() {
           setMessage={setMessage}
           handleSendMessage={handleSendMessage}
           setSelectedChat={setSelectedChat}
+          repliedMessage={repliedMessage}
+          setRepliedMessage={setRepliedMessage}
         />
       </div>
     </div>

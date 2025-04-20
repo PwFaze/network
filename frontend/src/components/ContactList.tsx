@@ -5,7 +5,7 @@ import { useChat } from "@/context/ChatProvider";
 import { ChatTarget, Group } from "@/dto/Chat";
 import CreateGroup from "@/components/CreateGroup";
 import { createGroup } from "@/api/group";
-
+import Avatar from './Avatar';
 interface ContactListProps {
   view: "friends" | "groups";
   friends: User[];
@@ -145,6 +145,8 @@ export default function ContactList({
                     })
                   }
                 >
+                  <Avatar username={friend.username} />
+                  {/* Status Dot for users only */}
                   <div
                     style={{
                       width: "10px",
