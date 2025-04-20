@@ -28,8 +28,9 @@ export const getMessages = async (req: Request, res: Response) => {
         .lean()
         .sort({ timestamp: 1 })
         .populate("sender")
-        .populate("receiver");
-
+        .populate("receiver")
+        .populate("repliedMessage");
+      
       // Get groups user is part of
       const groups = await Group.find({ participants: chatId }).lean();
 
@@ -112,6 +113,7 @@ export const registerMessageHandler = (io: Server, socket: Socket) => {
         receiverModel: userReceiver ? "User" : "Group",
         content: content,
         timestamp: new Date(),
+        repliedMessage: msgData.repliedMessage?.id
       });
       msgData.id = message._id.toString();
       if (receiver) {
