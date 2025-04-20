@@ -5,6 +5,7 @@ import { ChatTarget, Group, MessageDTO } from "@/dto/Chat";
 import { User } from "@/dto/User";
 import ChatBubble from "./ChatBubble";
 import { useChat } from "@/context/ChatProvider";
+import { leaveGroup } from "@/api/group";
 
 function isGroup(chat: ChatTarget): chat is Group {
   return (chat as Group).participants !== undefined;
@@ -36,6 +37,7 @@ export default function ChatWindow({
   setSelectedChat,
 }: ChatWindowProps) {
   const { user, socket, activeUsers } = useChat();
+
   const handleDeleteMessage = (id: string) => {
     if (!selectedChat || !user) return;
     console.log(selectedChat);
@@ -46,7 +48,7 @@ export default function ChatWindow({
           (participant) => {
             const active = activeUsers.find((u) => u.id === participant.id);
             return active ?? participant;
-          },
+          }
         );
 
         (selectedChat as Group).participants = enrichedParticipants;
@@ -69,14 +71,32 @@ export default function ChatWindow({
     });
   };
 
+  const handleLeaveGroup = async () => {
+    if (!selectedChat || !user || !isGroup(selectedChat)) return;
+
+    const groupId = selectedChat.id;
+    // console.log(groupId);
+    const userId = user.id;
+    // console.log(userId);
+    const success = await leaveGroup(groupId, userId);
+    if (success) {
+      socket?.emit("leftGroup", { groupId, userId });
+      setSelectedChat(null);
+    } else {
+      alert("Failed to leave group.");
+    }
+  };
+
   return (
     <div
-      className={`${selectedChat ? "flex" : "hidden md:flex"} flex-1 bg-slate-50 p-4 relative flex flex-col md:p-4 md:py-12`}
+      className={`${
+        selectedChat ? "flex" : "hidden md:flex"
+      } flex-1 bg-slate-50 p-4 relative flex flex-col md:p-4 md:py-12`}
     >
       {/* Chat Header */}
       <div className="bg-slate-50 text-gray-800 text-xl font-semibold mb-4">
         {selectedChat ? (
-          <div className="flex items-center gap-2">
+          <div className="flex flex-row items-center gap-2">
             <button
               className="md:hidden text-gray-800 text-2xl"
               onClick={() => setSelectedChat(null)}
@@ -88,9 +108,20 @@ export default function ChatWindow({
               {isGroup(selectedChat)
                 ? selectedChat.name
                 : isUser(selectedChat)
-                  ? selectedChat.username
-                  : "Unknown"}
+                ? selectedChat.username
+                : "Unknown"}
             </div>
+
+            {/* leave group button */}
+            {isGroup(selectedChat) && (
+              <button
+                className="text-sm bg-red-400 text-white px-2 py-1 rounded hover:bg-red-600"
+                onClick={handleLeaveGroup}
+              >
+                Leave
+              </button>
+            )}
+
             {/* Display online status */}
             {isUser(selectedChat) && (
               <div
@@ -110,8 +141,8 @@ export default function ChatWindow({
       {/* Message display area */}
       <div className="flex-1 border rounded p-2 overflow-y-auto bg-[#F0F4FA]">
         <ul>
-          {chat?.map((msg, i) => (
-            <li key={i} className="mb-1">
+          {chat?.map((msg) => (
+            <li key={msg.id} className="mb-1">
               <ChatBubble
                 message={msg}
                 onDelete={handleDeleteMessage}
@@ -125,6 +156,7 @@ export default function ChatWindow({
         </ul>
       </div>
 
+      {/* send meassage */}
       <form onSubmit={handleSendMessage} className="p-4 flex gap-2">
         <input
           type="text"
