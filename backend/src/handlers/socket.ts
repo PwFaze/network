@@ -3,14 +3,16 @@ import { UserDTO } from "../dto/UserDTO";
 import { registerMessageHandler } from "./message";
 import { joinGroupSocket, leaveGroupSocket } from "./groups";
 
-const users: UserDTO[] = [];
+let users: UserDTO[] = [];
 
 export const setupSocketHandlers = (io: Server) => {
   io.on("connection", (socket: Socket) => {
     console.log("a user connected:", socket.id);
 
     socket.on("setUser", (user: UserDTO) => {
-      users.filter((u) => u.id !== user.id);
+      users = users.filter((u) => u.id !== user.id);
+
+      user.socketId = socket.id;
       users.push(user);
 
       io.emit("activeUsers", users);
