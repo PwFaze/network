@@ -134,7 +134,7 @@ export default function Chat() {
   useEffect(() => {
     const unsubscribe = onMessage((msg) => {
       const isSender = msg.sender.id === user?.id;
-
+      console.log("message received :", msg);
       // 🛑 Avoid adding duplicate if user already added it optimistically
       // if (msg.group && !isSender) return;
 
