@@ -1,6 +1,8 @@
 import { Request, Response } from "express";
 import { Group } from "../models/Groups";
-import { Server } from "socket.io";
+import { UserDTO } from "../dto/UserDTO";
+import { User } from "../models/Users";
+import { Server, Socket } from "socket.io";
 import mongoose from "mongoose";
 
 export const createGroup =
@@ -50,12 +52,7 @@ export const getGroups = async (req: Request, res: Response) => {
     if (!userId) {
       return res.status(401).json({ success: false, msg: "Unauthorized" });
     }
-
-    const groups = await Group.find({ participants: { $in: [userId] } })
-      .populate("participants")
-      .exec();
-
-    console.log("Fetched groups:", groups);
+    const groups = await Group.find().populate("participants");
 
     res.status(200).json({ success: true, groups });
   } catch (err: unknown) {
@@ -70,8 +67,6 @@ export const leaveGroup = (io: Server) => {
   return async (req: Request, res: Response) => {
     try {
       const { groupId, userId } = req.params;
-      // console.log("typeof groupId:", mongoose.Types.ObjectId.isValid(groupId));
-      // console.log("typeof userId:", mongoose.Types.ObjectId.isValid(userId));
 
       if (
         !mongoose.Types.ObjectId.isValid(groupId) ||
@@ -106,4 +101,79 @@ export const leaveGroup = (io: Server) => {
       return res.status(500).json({ success: false, msg: "Server error" });
     }
   };
+};
+
+export const leaveGroupSocket = (io: Server, socket: Socket) => {
+  socket.on("leaveGroup", async ({ groupId, userId }) => {
+    try {
+      if (
+        !mongoose.Types.ObjectId.isValid(groupId) ||
+        !mongoose.Types.ObjectId.isValid(userId)
+      ) {
+        return socket.emit("error", {
+          type: "leaveGroup",
+          msg: "Invalid groupId or userId",
+        });
+      }
+
+      const group = await Group.findById(groupId);
+      if (!group) {
+        return socket.emit("error", {
+          type: "leaveGroup",
+          msg: "Group not found",
+        });
+      }
+
+      if (!group.participants.some((id) => id.toString() === userId)) {
+        return socket.emit("error", {
+          type: "leaveGroup",
+          msg: "User is not in the group",
+        });
+      }
+
+      group.participants.pull(userId);
+      await group.save();
+
+      io.emit("groupUpdated", {
+        groupId,
+        type: "leave",
+        userId,
+      });
+
+      socket.emit("leftGroup", {
+        success: true,
+        msg: "User left the group",
+        group,
+      });
+    } catch (error) {
+      console.error("Leave group error:", error);
+      socket.emit("error", {
+        type: "leaveGroup",
+        msg: "Server error",
+      });
+    }
+  });
+};
+
+export const joinGroupSocket = (io: Server, socket: Socket) => {
+  socket.on("joinGroup", async ({ userId, groupId }) => {
+    try {
+      const group = await Group.findById(groupId).populate("participants");
+      if (!group) {
+        return socket.emit("error", "Group not found");
+      }
+
+      const isAlreadyInGroup = group.participants.some((p) => p.id === userId);
+
+      if (!isAlreadyInGroup) {
+        group.participants.push(userId);
+        await group.save();
+      }
+
+      io.emit("groupUpdated", { groupId });
+    } catch (err) {
+      console.error("Join group error:", err);
+      socket.emit("error", "Failed to join group");
+    }
+  });
 };

@@ -1,6 +1,6 @@
 import { MessageDTO } from "@/dto/Chat";
 import React from "react";
-import Avatar from './Avatar';
+import Avatar from "./Avatar";
 
 interface ChatBubbleProps {
   message: MessageDTO;
@@ -20,6 +20,7 @@ export default function ChatBubble({
   const handleClick = (e: React.MouseEvent) => {
     if (!isOwnMessage) return;
     e.preventDefault();
+    e.stopPropagation();
     if (confirm("Delete this message?")) {
       onDelete(message.id);
     }
@@ -27,13 +28,15 @@ export default function ChatBubble({
   return (
     <div
       className={`flex flex-col ${isOwnMessage ? "items-end" : "items-start"}`}
-      onClick={handleClick}
     >
-      <div className="text-xs text-gray-500 mb-1">{senderName}</div>
       {message.repliedMessage && (
         <div className="border-l-4 border-gray-300 pl-2 mb-1">
-          <div className="text-xs text-gray-500">{message.repliedMessage.sender.username}</div>
-          <div className="text-sm text-gray-600">{message.repliedMessage.content}</div>
+          <div className="text-xs text-gray-500">
+            {message.repliedMessage.sender.username}
+          </div>
+          <div className="text-sm text-gray-600">
+            {message.repliedMessage.content}
+          </div>
         </div>
       )}
       <div className="flex items-center gap-2">
@@ -58,7 +61,10 @@ export default function ChatBubble({
         </p>
       )}
       {isOwnMessage && (
-        <p className="text-black text-xs opacity-40 cursor-pointer">
+        <p
+          className="text-black text-xs opacity-40 cursor-pointer"
+          onClick={handleClick}
+        >
           delete message
         </p>
       )}

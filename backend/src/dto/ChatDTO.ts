@@ -1,7 +1,8 @@
 import { UserDTO } from "./UserDTO";
 export interface GroupChat {
   name: string;
-  _id: string;
+  id: string;
+  _id?: string;
   participants: UserDTO[];
 }
 export interface MessageDTO {

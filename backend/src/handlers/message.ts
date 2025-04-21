@@ -30,7 +30,7 @@ export const getMessages = async (req: Request, res: Response) => {
         .populate("sender")
         .populate("receiver")
         .populate("repliedMessage");
-      
+
       // Get groups user is part of
       const groups = await Group.find({ participants: chatId }).lean();
 
@@ -51,7 +51,7 @@ export const getMessages = async (req: Request, res: Response) => {
 
       const uniqueMessages = Array.from(uniqueMessagesMap.values()).sort(
         (a, b) =>
-          new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+          new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
       );
 
       return res.status(200).json({ messages: uniqueMessages });
@@ -75,7 +75,6 @@ export const getMessages = async (req: Request, res: Response) => {
 export const registerMessageHandler = (io: Server, socket: Socket) => {
   socket.on("deleteMessage", async ({ messageId, userId, receiver }) => {
     const message = await Message.findById(messageId);
-    // console.log(messageId, userId, receiver);
     if (!message) return;
 
     if (message.sender.toString() !== userId) {
@@ -101,7 +100,7 @@ export const registerMessageHandler = (io: Server, socket: Socket) => {
         return socket.emit("error", { message: "Sender not found" });
       }
       const userReceiver = await User.findById(receiver?.id);
-      const groupReceiver = await Group.findById(group?._id);
+      const groupReceiver = await Group.findById(group?.id);
       if (!userReceiver && !groupReceiver) {
         console.log("Receiver not found");
         return socket.emit("error", { message: "Receiver not found" });
@@ -109,11 +108,11 @@ export const registerMessageHandler = (io: Server, socket: Socket) => {
 
       const message = await Message.create({
         sender: sender.id,
-        receiver: receiver?.id || group?._id,
+        receiver: receiver?.id || group?.id,
         receiverModel: userReceiver ? "User" : "Group",
         content: content,
         timestamp: new Date(),
-        repliedMessage: msgData.repliedMessage?.id
+        repliedMessage: msgData.repliedMessage?.id,
       });
       msgData.id = message._id.toString();
       if (receiver) {
