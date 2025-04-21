@@ -37,7 +37,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
   const connectSocket = useCallback((token?: string) => {
     if (socket && socket.connected) return;
 
-    socket = io("http://localhost:4000", {
+    socket = io(process.env.NEXT_PUBLIC_API_URL, {
       auth: token ? { token } : undefined,
     });
 
