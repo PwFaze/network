@@ -1,7 +1,7 @@
 import { Server, Socket } from "socket.io";
-import { MessageDTO } from "../dto/ChatDTO";
 import { UserDTO } from "../dto/UserDTO";
 import { registerMessageHandler } from "./message";
+import { joinGroupSocket, leaveGroupSocket } from "./groups";
 
 const users: UserDTO[] = [];
 
@@ -15,6 +15,8 @@ export const setupSocketHandlers = (io: Server) => {
       io.emit("activeUsers", users);
     });
     registerMessageHandler(io, socket);
+    joinGroupSocket(io, socket);
+    leaveGroupSocket(io, socket);
 
     socket.on("disconnect", () => {
       const index = users.findIndex((user) => user.socketId === socket.id);
