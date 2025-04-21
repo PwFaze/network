@@ -77,6 +77,7 @@ export default function ChatWindow({
     });
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleLeaveGroup = async () => {
     if (!selectedChat || !user || !isGroup(selectedChat)) return;
     const groupId = selectedChat.id;

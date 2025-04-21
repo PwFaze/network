@@ -34,6 +34,7 @@ export default function Chat() {
   const fetchGroups = async (userId: string) => {
     const response = await getUserGroups(userId);
     if (!Array.isArray(response)) return;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const transformedGroups: Group[] = response.map(
       ({ _id, name, participants }: any) => ({
         id: _id,
@@ -50,6 +51,7 @@ export default function Chat() {
 
   useEffect(() => {
     if (!socket || !user?.id) return;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const handleGroupUpdated = async (data: any) => {
       console.log("group updated", data);
       const response = await getUserGroups(user.id);
