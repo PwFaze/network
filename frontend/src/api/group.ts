@@ -41,6 +41,7 @@ export const leaveGroup = async (groupId: string, userId: string) => {
 
 export const groupUpdated = (
   socket: Socket | null | undefined,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   callback: (...args: any[]) => void
 ) => {
   if (!socket) return;
