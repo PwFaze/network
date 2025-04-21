@@ -6,7 +6,8 @@ import { User } from "@/dto/User";
 import ChatBubble from "./ChatBubble";
 import { useChat } from "@/context/ChatProvider";
 import { leaveGroup } from "@/api/group";
-import Avatar from './Avatar';
+import Avatar from "./Avatar";
+import toast from "react-hot-toast";
 
 function isGroup(chat: ChatTarget): chat is Group {
   return (chat as Group).participants !== undefined;
@@ -42,10 +43,8 @@ export default function ChatWindow({
   setRepliedMessage,
 }: ChatWindowProps) {
   const { user, socket, activeUsers } = useChat();
-
   const handleDeleteMessage = (id: string) => {
     if (!selectedChat || !user) return;
-    console.log(selectedChat);
     if ((selectedChat as Group).participants) {
       const fullGroup = selectedChat as Group;
       if (fullGroup && fullGroup.participants?.length) {
@@ -60,6 +59,9 @@ export default function ChatWindow({
       } else {
         console.warn("Group not found or missing participants");
       }
+    } else {
+      const active = activeUsers.find((u) => u.id === selectedChat.id);
+      (selectedChat as User).socketId = active?.socketId;
     }
     socket?.emit("deleteMessage", {
       messageId: id,
@@ -78,27 +80,17 @@ export default function ChatWindow({
 
   const handleLeaveGroup = async () => {
     if (!selectedChat || !user || !isGroup(selectedChat)) return;
-
     const groupId = selectedChat.id;
-    // console.log(groupId);
     const userId = user.id;
-    // console.log(userId);
-    const success = await leaveGroup(groupId, userId);
-    if (success) {
-      socket?.emit("leftGroup", { groupId, userId });
-      setSelectedChat(null);
-    } else {
-      alert("Failed to leave group.");
-    }
+    socket?.emit("leaveGroup", { groupId, userId });
+    toast.success("Leave Group Succes");
+    setSelectedChat(null);
   };
-
 
   const handleReplyMessage = (message: MessageDTO) => {
     setRepliedMessage(message);
     setMessage(`@${message.sender.username} `);
   };
-  
-  
   return (
     <div
       className={`${
@@ -117,10 +109,35 @@ export default function ChatWindow({
             </button>
             {selectedChat && (
               <>
-                <Avatar username={isGroup(selectedChat) ? selectedChat.name : selectedChat.username} />
+                <Avatar
+                  username={
+                    isGroup(selectedChat)
+                      ? selectedChat.name
+                      : selectedChat.username
+                  }
+                />
                 <div>
-                  {isGroup(selectedChat) ? selectedChat.name : selectedChat.username}
+                  {isGroup(selectedChat)
+                    ? selectedChat.name
+                    : selectedChat.username}
                 </div>
+              </>
+            )}
+
+            {/* leave group button */}
+            {isGroup(selectedChat) && (
+              <>
+                {"(Member :"}
+                {selectedChat.participants.map((p, index) => (
+                  <p key={"member :" + p.id + index}>{p.username}</p>
+                ))}
+                {")"}
+                <button
+                  className="text-sm bg-red-400 text-white px-2 py-1 rounded hover:bg-red-600"
+                  onClick={handleLeaveGroup}
+                >
+                  Leave
+                </button>
               </>
             )}
             {/* Display online status */}
@@ -157,10 +174,12 @@ export default function ChatWindow({
           ))}
         </ul>
       </div>
-      
+
       {repliedMessage && (
         <div className="mb-2 border-l-4 border-blue-400 pl-3 bg-white rounded text-sm text-gray-700 py-2">
-          <div className="text-xs text-gray-500">{repliedMessage.sender.username} said:</div>
+          <div className="text-xs text-gray-500">
+            {repliedMessage.sender.username} said:
+          </div>
           <div>{repliedMessage.content}</div>
           <button
             className="text-xs text-blue-600 mt-1 underline"

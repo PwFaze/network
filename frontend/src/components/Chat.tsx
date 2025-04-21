@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import { toast } from "react-hot-toast";
 import Sidebar from "./Sidebar";
 import ContactList from "./ContactList";
 import ChatWindow from "./ChatWindow";
@@ -13,7 +14,10 @@ import { getUserGroups } from "@/api/user";
 import { User } from "@/dto/User";
 
 function isGroup(chat: ChatTarget): chat is Group {
-  return (chat as Group).participants !== undefined;
+  return (
+    (chat as Group).participants !== undefined &&
+    (chat as Group).participants !== null
+  );
 }
 
 export default function Chat() {
@@ -27,29 +31,63 @@ export default function Chat() {
   const [view, setView] = useState<"friends" | "groups">("friends");
   const [groups, setGroups] = useState<Group[]>([]);
   const [repliedMessage, setRepliedMessage] = useState<MessageDTO | null>(null);
-  
-  const fetchGroups = useCallback(async (userId: string) => {
+
+  const fetchGroups = async (userId: string) => {
     const response = await getUserGroups(userId);
     if (!Array.isArray(response)) return;
-    // console.log("AAAAAAAA:", response);
     const transformedGroups: Group[] = response.map(
       ({ _id, name, participants }: any) => ({
         id: _id,
         name,
         participants: participants.map((participant: User) => ({
-          id: participant.id,
+          id: participant._id,
           username: participant.username,
         })),
       })
     );
 
     setGroups(transformedGroups);
-  }, []);
+  };
+
+  useEffect(() => {
+    if (!socket || !user?.id) return;
+    const handleGroupUpdated = async (data: any) => {
+      console.log("group updated", data);
+      const response = await getUserGroups(user.id);
+      if (!Array.isArray(response)) return;
+
+      const transformedGroups: Group[] = response.map(
+        ({ _id, name, participants }: any) => ({
+          id: _id,
+          name,
+          participants: participants.map((participant: User) => ({
+            id: participant._id,
+            username: participant.username,
+          })),
+        })
+      );
+      setGroups(transformedGroups);
+      // 🔄 Reset selectedChat if it matches the updated group
+      if (selectedChat && isGroup(selectedChat)) {
+        const updatedGroup = transformedGroups.find(
+          (g) => g.id === selectedChat.id
+        );
+        if (updatedGroup) {
+          setSelectedChat(updatedGroup);
+        }
+      }
+    };
+
+    socket.on("groupUpdated", handleGroupUpdated);
+    return () => {
+      socket.off("groupUpdated", handleGroupUpdated);
+    };
+  }, [socket, user?.id, selectedChat]);
 
   useEffect(() => {
     if (!socket) return;
     const handleDeletedMessage = (messageId: string) => {
-      console.log(messageId);
+      console.log("message delete", messageId);
       setMessages((prev) => {
         const updated = { ...prev };
         for (const chatId in updated) {
@@ -71,7 +109,7 @@ export default function Chat() {
     if (user?.id) {
       fetchGroups(user?.id);
     }
-  }, [user?.id, fetchGroups]);
+  }, [user?.id]);
 
   useEffect(() => {
     if (socket && user?.id) {
@@ -90,14 +128,14 @@ export default function Chat() {
         socket.off("groupCreated");
       };
     }
-  }, [socket, user?.id, fetchGroups]);
+  }, [socket, user?.id]);
 
   useEffect(() => {
     const unsubscribe = onMessage((msg) => {
       const isSender = msg.sender.id === user?.id;
 
       // 🛑 Avoid adding duplicate if user already added it optimistically
-      if (msg.group && isSender) return;
+      // if (msg.group && !isSender) return;
 
       setMessages((prev) => {
         const chatId =
@@ -131,8 +169,6 @@ export default function Chat() {
       timestamp: new Date(),
       repliedMessage: repliedMessage ?? undefined,
     };
-
-    console.log(messageData);
 
     if (isGroup(selectedChat)) {
       const fullGroup = groups.find((g) => g.id === selectedChat.id);
@@ -215,7 +251,6 @@ export default function Chat() {
 
     fetchMessages();
   }, [auth, user]);
-
   return (
     <div className="relative h-screen">
       <div className="h-full flex flex-col md:flex-row filter-none">
@@ -226,7 +261,6 @@ export default function Chat() {
           groups={groups}
           selectedChat={selectedChat}
           setSelectedChat={setSelectedChat}
-          fetchGroups={fetchGroups}
         />
         <ChatWindow
           selectedChat={selectedChat}

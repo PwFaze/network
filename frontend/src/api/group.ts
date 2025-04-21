@@ -1,4 +1,5 @@
 import { User } from "@/dto/User";
+import { Socket } from "socket.io-client";
 import axios from "axios";
 
 export const createGroup = async (groupName: string, selectedUsers: User[]) => {
@@ -15,7 +16,6 @@ export const createGroup = async (groupName: string, selectedUsers: User[]) => {
         },
       }
     );
-    console.log(response);
     if (response.status === 201) {
       const data = response.data;
       console.log("Group created successfully:", data);
@@ -37,4 +37,12 @@ export const leaveGroup = async (groupId: string, userId: string) => {
     console.error("Error leaving group:", error);
     return false;
   }
+};
+
+export const groupUpdated = (
+  socket: Socket | null | undefined,
+  callback: (...args: any[]) => void
+) => {
+  if (!socket) return;
+  socket.on("groupUpdated", callback);
 };

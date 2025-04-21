@@ -9,7 +9,6 @@ export const getUserGroups = async (userId: string): Promise<Group[]> => {
       `http://localhost:4000/api/groups/${userId}`
     );
     if (response.status === 200 && response.data.success) {
-      console.log(response);
       return response.data.groups;
     }
     return [];
@@ -20,10 +19,7 @@ export const getUserGroups = async (userId: string): Promise<Group[]> => {
 };
 
 // Register a new user
-export const registerUser = async (
-  username: string,
-  password: string
-): Promise<User | null> => {
+export const registerUser = async (username: string, password: string) => {
   try {
     const response = await axios.post(
       `http://localhost:4000/api/auth/register`,
@@ -39,10 +35,7 @@ export const registerUser = async (
 };
 
 // Log in a user
-export const loginUser = async (
-  username: string,
-  password: string
-): Promise<User | null> => {
+export const loginUser = async (username: string, password: string) => {
   try {
     const response = await axios.post(
       `http://localhost:4000/api/auth/login`,

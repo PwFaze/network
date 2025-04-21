@@ -5,6 +5,7 @@ import { AuthSchema } from "@/dto/User";
 import { loginUser, registerUser } from "@/api/user";
 import { useChat } from "@/context/ChatProvider";
 import { useRouter } from "next/navigation";
+import { toast } from "react-hot-toast";
 
 export default function Login() {
   const router = useRouter();
@@ -12,16 +13,12 @@ export default function Login() {
   const { handleSubmit, register } = useForm<AuthSchema>();
   const [mode, setMode] = useState<"login" | "register">("login");
 
-  // const fetchGroups = useCallback(async (userId: string) => {
-  //   const response = await getUserGroups(userId);
-  // }, []);
   const onSubmit = async (data: AuthSchema) => {
     const { username, password } = data;
 
     if (mode === "register") {
       const data = await registerUser(username, password);
-
-      if (data.user) {
+      if (data?.user) {
         const userId = data.user._id;
         localStorage.setItem("token", data.token);
         setUser({ ...data.user, id: userId });
@@ -32,7 +29,7 @@ export default function Login() {
         });
         router.push("/chat");
       } else {
-        console.error("Registration failed");
+        toast.error("Registration failed");
       }
     } else {
       const data = await loginUser(username, password);
@@ -47,7 +44,7 @@ export default function Login() {
         });
         router.push("/chat");
       } else {
-        console.error("Login failed");
+        toast.error("Login failed");
       }
     }
   };
