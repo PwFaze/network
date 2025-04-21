@@ -10,6 +10,7 @@ export const setupSocketHandlers = (io: Server) => {
     console.log("a user connected:", socket.id);
 
     socket.on("setUser", (user: UserDTO) => {
+      users.filter((u) => u.id !== user.id);
       users.push(user);
 
       io.emit("activeUsers", users);
