@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { toast } from "react-hot-toast";
 import Sidebar from "./Sidebar";
 import ContactList from "./ContactList";
 import ChatWindow from "./ChatWindow";
@@ -57,11 +56,11 @@ export default function Chat() {
       if (!Array.isArray(response)) return;
 
       const transformedGroups: Group[] = response.map(
-        ({ _id, name, participants }: any) => ({
-          id: _id,
+        ({ _id, name, participants }: Group) => ({
+          id: _id ?? "",
           name,
           participants: participants.map((participant: User) => ({
-            id: participant._id,
+            id: participant._id ?? "",
             username: participant.username,
           })),
         })
@@ -205,18 +204,18 @@ export default function Chat() {
           const data = await getMessageByUserId(user.id);
           const transformedMessages: { [chatId: string]: MessageDTO[] } =
             data.messages.reduce(
-              (acc: { [chatId: string]: MessageDTO[] }, m: any) => {
+              (acc: { [chatId: string]: MessageDTO[] }, m: MessageDTO) => {
                 let chatId: string;
 
                 if (m.sender?._id === user.id) {
                   // User is the sender -> use receiver's ID (could be user or group)
-                  chatId = m.receiver._id;
+                  chatId = m.receiver?._id ?? "";
                 } else if (m.receiver?._id === user.id) {
                   // User is the receiver -> use sender's ID
-                  chatId = m.sender._id;
+                  chatId = m.sender?._id ?? "";
                 } else {
                   // Neither sender nor receiver is the user -> group message
-                  chatId = m.receiver._id;
+                  chatId = m.receiver?._id ?? "";
                 }
 
                 if (!acc[chatId]) {
@@ -224,14 +223,15 @@ export default function Chat() {
                 }
 
                 acc[chatId].push({
-                  id: m._id,
+                  id: m?._id ?? "",
                   sender: {
                     ...m.sender,
-                    id: m.sender._id,
+                    id: m?.sender?._id ?? "",
                   },
                   receiver: {
                     ...m.receiver,
-                    id: m.receiver._id,
+                    username: m.receiver?.username ?? "",
+                    id: m.receiver?._id ?? "",
                   },
                   content: m.content,
                   timestamp: m.timestamp,

@@ -1,12 +1,11 @@
 import axios from "axios";
 import { Group } from "@/dto/Chat";
-import { User } from "@/dto/User";
 
 // Get groups for a specific user
 export const getUserGroups = async (userId: string): Promise<Group[]> => {
   try {
     const response = await axios.get(
-      `http://localhost:4000/api/groups/${userId}`
+      `${process.env.NEXT_PUBLIC_API_URL}api/groups/${userId}`
     );
     if (response.status === 200 && response.data.success) {
       return response.data.groups;
@@ -22,7 +21,7 @@ export const getUserGroups = async (userId: string): Promise<Group[]> => {
 export const registerUser = async (username: string, password: string) => {
   try {
     const response = await axios.post(
-      `http://localhost:4000/api/auth/register`,
+      `${process.env.NEXT_PUBLIC_API_URL}api/auth/register`,
       { username, password },
       { headers: { "Content-Type": "application/json" } }
     );
@@ -38,7 +37,7 @@ export const registerUser = async (username: string, password: string) => {
 export const loginUser = async (username: string, password: string) => {
   try {
     const response = await axios.post(
-      `http://localhost:4000/api/auth/login`,
+      `${process.env.NEXT_PUBLIC_API_URL}api/auth/login`,
       { username, password },
       { headers: { "Content-Type": "application/json" } }
     );
@@ -57,7 +56,7 @@ export const leaveGroup = async (
 ): Promise<boolean> => {
   try {
     const response = await axios.post(
-      `http://localhost:4000/api/groups/leave`,
+      `${process.env.NEXT_PUBLIC_API_URL}api/groups/leave`,
       { groupId, userId },
       { headers: { "Content-Type": "application/json" } }
     );

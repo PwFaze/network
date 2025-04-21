@@ -5,7 +5,6 @@ import { ChatTarget, Group, MessageDTO } from "@/dto/Chat";
 import { User } from "@/dto/User";
 import ChatBubble from "./ChatBubble";
 import { useChat } from "@/context/ChatProvider";
-import { leaveGroup } from "@/api/group";
 import Avatar from "./Avatar";
 import toast from "react-hot-toast";
 

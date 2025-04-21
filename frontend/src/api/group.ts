@@ -5,7 +5,7 @@ import axios from "axios";
 export const createGroup = async (groupName: string, selectedUsers: User[]) => {
   try {
     const response = await axios.post(
-      "http://localhost:4000/api/groups",
+      `${process.env.NEXT_PUBLIC_API_URL}api/groups`,
       {
         name: groupName,
         participants: selectedUsers.map((user) => user.id),
@@ -30,7 +30,7 @@ export const createGroup = async (groupName: string, selectedUsers: User[]) => {
 export const leaveGroup = async (groupId: string, userId: string) => {
   try {
     const response = await axios.delete(
-      `http://localhost:4000/api/groups/${groupId}/leave/${userId}`
+      `${process.env.NEXT_PUBLIC_API_URL}api/groups/${groupId}/leave/${userId}`
     );
     return response.data.success;
   } catch (error) {
