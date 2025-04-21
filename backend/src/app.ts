@@ -20,7 +20,7 @@ app.use(express.json());
 
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:3000",
+    origin: process.env.FRONTEND_URL,
     methods: ["GET", "POST"],
   },
 });
@@ -31,5 +31,5 @@ app.use("/api/messages", messages);
 connectDB();
 setupSocketHandlers(io);
 server.listen(4000, () => {
-  console.log("Socket.IO server running at http://localhost:4000/");
+  console.log("Socket.IO server running at port 4000");
 });
