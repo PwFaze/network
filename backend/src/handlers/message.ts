@@ -51,7 +51,7 @@ export const getMessages = async (req: Request, res: Response) => {
 
       const uniqueMessages = Array.from(uniqueMessagesMap.values()).sort(
         (a, b) =>
-          new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+          new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
       );
 
       return res.status(200).json({ messages: uniqueMessages });
@@ -93,6 +93,7 @@ export const registerMessageHandler = (io: Server, socket: Socket) => {
   socket.on("chat message", async (msgData: MessageDTO) => {
     try {
       const { sender, receiver, group, content } = msgData;
+      const tempId = msgData.id;
       if (receiver) {
         io.to(receiver?.socketId ?? "").emit("chat message", msgData);
         io.to(sender?.socketId ?? "").emit("chat message", msgData);
@@ -124,6 +125,16 @@ export const registerMessageHandler = (io: Server, socket: Socket) => {
         repliedMessage: msgData.repliedMessage?.id,
       });
       msgData.id = message._id.toString();
+
+      const targets = msgData.group
+        ? msgData.group.participants
+        : [msgData.sender, msgData.receiver];
+      targets.forEach((user) => {
+        io.to(user?.socketId ?? "").emit("messageConfirmed", {
+          tempId,
+          msgData,
+        });
+      });
     } catch (error) {
       console.log("Error creating message:", error);
       socket.emit("error", { message: (error as Error).message });
