@@ -51,7 +51,7 @@ export const getMessages = async (req: Request, res: Response) => {
 
       const uniqueMessages = Array.from(uniqueMessagesMap.values()).sort(
         (a, b) =>
-          new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+          new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
       );
 
       return res.status(200).json({ messages: uniqueMessages });
@@ -74,6 +74,13 @@ export const getMessages = async (req: Request, res: Response) => {
 
 export const registerMessageHandler = (io: Server, socket: Socket) => {
   socket.on("deleteMessage", async ({ messageId, userId, receiver }) => {
+    if (!receiver.participants) {
+      io.to(receiver.socketId).emit("messageDeleted", messageId);
+    } else {
+      receiver.participants.forEach((participant: UserDTO) => {
+        io.to(participant?.socketId ?? "").emit("messageDeleted", messageId);
+      });
+    }
     const message = await Message.findById(messageId);
     if (!message) return;
 
@@ -82,17 +89,19 @@ export const registerMessageHandler = (io: Server, socket: Socket) => {
     }
 
     await Message.findByIdAndDelete(messageId);
-    if (!receiver.participants) {
-      io.to(receiver.socketId).emit("messageDeleted", messageId);
-    } else {
-      receiver.participants.forEach((participant: UserDTO) => {
-        io.to(participant?.socketId ?? "").emit("messageDeleted", messageId);
-      });
-    }
   });
   socket.on("chat message", async (msgData: MessageDTO) => {
     try {
       const { sender, receiver, group, content } = msgData;
+      if (receiver) {
+        io.to(receiver?.socketId ?? "").emit("chat message", msgData);
+        io.to(sender?.socketId ?? "").emit("chat message", msgData);
+      }
+      if (group) {
+        group.participants.forEach((participant) => {
+          io.to(participant?.socketId ?? "").emit("chat message", msgData);
+        });
+      }
       // Validate sender
       const senderUser = await User.findById(sender.id);
       if (!senderUser) {
@@ -115,15 +124,6 @@ export const registerMessageHandler = (io: Server, socket: Socket) => {
         repliedMessage: msgData.repliedMessage?.id,
       });
       msgData.id = message._id.toString();
-      if (receiver) {
-        io.to(receiver?.socketId ?? "").emit("chat message", msgData);
-        io.to(sender?.socketId ?? "").emit("chat message", msgData);
-      }
-      if (group) {
-        group.participants.forEach((participant) => {
-          io.to(participant?.socketId ?? "").emit("chat message", msgData);
-        });
-      }
     } catch (error) {
       console.log("Error creating message:", error);
       socket.emit("error", { message: (error as Error).message });
