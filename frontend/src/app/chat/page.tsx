@@ -1,3 +1,4 @@
+"use client";
 import Chat from "@/components/Chat";
 import { useChat } from "@/context/ChatProvider";
 export default function Home() {
