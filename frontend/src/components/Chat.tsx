@@ -20,10 +20,11 @@ function isGroup(chat: ChatTarget): chat is Group {
 }
 
 export default function Chat() {
-  const { user, activeUsers, sendMessage, onMessage, socket } = useChat();
+  const { user, setActiveUsers, activeUsers, sendMessage, onMessage, socket } =
+    useChat();
   const auth = useAuth();
   const [messages, setMessages] = useState<{ [chatId: string]: MessageDTO[] }>(
-    {}
+    {},
   );
   const [selectedChat, setSelectedChat] = useState<ChatTarget | null>(null);
   const [message, setMessage] = useState("");
@@ -43,11 +44,25 @@ export default function Chat() {
           id: participant._id,
           username: participant.username,
         })),
-      })
+      }),
     );
 
     setGroups(transformedGroups);
   };
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleActiveUsers = (users: User[]) => {
+      console.log("Active users updated:", users);
+      setActiveUsers(users);
+    };
+
+    socket.on("activeUsers", handleActiveUsers);
+
+    return () => {
+      socket.off("activeUsers", handleActiveUsers);
+    };
+  }, [socket, setActiveUsers]);
 
   useEffect(() => {
     if (!socket || !user?.id) return;
@@ -65,13 +80,13 @@ export default function Chat() {
             id: participant._id ?? "",
             username: participant.username,
           })),
-        })
+        }),
       );
       setGroups(transformedGroups);
       // 🔄 Reset selectedChat if it matches the updated group
       if (selectedChat && isGroup(selectedChat)) {
         const updatedGroup = transformedGroups.find(
-          (g) => g.id === selectedChat.id
+          (g) => g.id === selectedChat.id,
         );
         if (updatedGroup) {
           setSelectedChat(updatedGroup);
@@ -93,7 +108,7 @@ export default function Chat() {
         const updated = { ...prev };
         for (const chatId in updated) {
           updated[chatId] = updated[chatId].filter(
-            (msg) => msg.id !== messageId
+            (msg) => msg.id !== messageId,
           );
         }
         return updated;
@@ -179,7 +194,7 @@ export default function Chat() {
           (participant) => {
             const active = activeUsers.find((u) => u.id === participant.id);
             return active ?? participant;
-          }
+          },
         );
 
         messageData.group = {
@@ -241,7 +256,7 @@ export default function Chat() {
 
                 return acc;
               },
-              {}
+              {},
             );
 
           setMessages(transformedMessages);

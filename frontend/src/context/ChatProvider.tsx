@@ -17,6 +17,7 @@ interface ChatContextType {
   user: User | null;
   setUser: (user: User) => void;
   joinChat: (user: User) => void;
+  setActiveUsers: (users: User[]) => void;
   activeUsers: User[];
   sendMessage: (msg: MessageDTO) => void;
   onMessage: (cb: (msg: MessageDTO) => void) => () => void;
@@ -101,6 +102,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         user,
         setUser,
         joinChat,
+        setActiveUsers,
         activeUsers,
         sendMessage,
         onMessage,
