@@ -24,6 +24,7 @@ const io = new Server(server, {
     methods: ["GET", "POST"],
   },
 });
+
 app.use("/api/auth", auth);
 app.use("/api/groups", groups(io));
 app.use("/api/messages", messages);

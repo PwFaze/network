@@ -5,7 +5,7 @@ import { Group } from "@/dto/Chat";
 export const getUserGroups = async (userId: string): Promise<Group[]> => {
   try {
     const response = await axios.get(
-      `${process.env.NEXT_PUBLIC_API_URL}api/groups/${userId}`
+      `${process.env.NEXT_PUBLIC_API_URL}api/groups/${userId}`,
     );
     if (response.status === 200 && response.data.success) {
       return response.data.groups;
@@ -23,7 +23,7 @@ export const registerUser = async (username: string, password: string) => {
     const response = await axios.post(
       `${process.env.NEXT_PUBLIC_API_URL}api/auth/register`,
       { username, password },
-      { headers: { "Content-Type": "application/json" } }
+      { headers: { "Content-Type": "application/json" } },
     );
 
     return response.status === 200 ? response.data.data : null;
@@ -39,9 +39,9 @@ export const loginUser = async (username: string, password: string) => {
     const response = await axios.post(
       `${process.env.NEXT_PUBLIC_API_URL}api/auth/login`,
       { username, password },
-      { headers: { "Content-Type": "application/json" } }
+      { headers: { "Content-Type": "application/json" } },
     );
-
+    console.log(response);
     return response.data.success ? response.data.data : null;
   } catch (error) {
     console.error("Error logging in:", error);
@@ -52,13 +52,13 @@ export const loginUser = async (username: string, password: string) => {
 // Leave a group
 export const leaveGroup = async (
   groupId: string,
-  userId: string
+  userId: string,
 ): Promise<boolean> => {
   try {
     const response = await axios.post(
       `${process.env.NEXT_PUBLIC_API_URL}api/groups/leave`,
       { groupId, userId },
-      { headers: { "Content-Type": "application/json" } }
+      { headers: { "Content-Type": "application/json" } },
     );
 
     return response.status === 200 && response.data.success;

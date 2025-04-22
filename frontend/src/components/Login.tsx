@@ -33,7 +33,7 @@ export default function Login() {
       }
     } else {
       const data = await loginUser(username, password);
-      if (data.user) {
+      if (data?.user) {
         const userId = data.user._id;
         localStorage.setItem("token", data.token);
         setUser({ ...data.user, id: userId });
