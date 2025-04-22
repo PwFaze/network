@@ -1,7 +1,5 @@
 import { Request, Response } from "express";
 import { Group } from "../models/Groups";
-import { UserDTO } from "../dto/UserDTO";
-import { User } from "../models/Users";
 import { Server, Socket } from "socket.io";
 import mongoose from "mongoose";
 

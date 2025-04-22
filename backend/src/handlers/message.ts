@@ -32,7 +32,7 @@ export const getMessages = async (req: Request, res: Response) => {
         .populate("repliedMessage");
 
       // Get groups user is part of
-      const groups = await Group.find({ participants: chatId }).lean();
+      const groups = await Group.find().lean();
 
       // Get messages from all those groups
       const groupMessages = await Message.find({
