@@ -51,7 +51,7 @@ export default function ChatWindow({
           (participant) => {
             const active = activeUsers.find((u) => u.id === participant.id);
             return active ?? participant;
-          }
+          },
         );
 
         (selectedChat as Group).participants = enrichedParticipants;
@@ -195,9 +195,13 @@ export default function ChatWindow({
         <input
           type="text"
           value={message}
-          placeholder="Type something..."
+          placeholder={
+            user?.id !== selectedChat?.id
+              ? "Type something..."
+              : "You can't send messages to yourself"
+          }
           onChange={(e) => setMessage(e.target.value)}
-          disabled={!selectedChat}
+          disabled={!selectedChat || user?.id === selectedChat.id}
           className="flex-1 border px-3 py-2 rounded text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-sky-600"
         />
         <button
@@ -205,6 +209,7 @@ export default function ChatWindow({
           className={`${
             selectedChat ? "bg-blue-500" : "bg-gray-400"
           } text-white px-4 py-2 rounded`}
+          disabled={!selectedChat || user?.id === selectedChat.id}
         >
           Send
         </button>

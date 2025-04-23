@@ -38,19 +38,19 @@ export default function ContactList({
     if (view === "friends") {
       if (!friends) return;
       const uniqueFriends = Array.from(
-        new Map(friends.map((friend) => [friend.id, friend])).values()
+        new Map(friends.map((friend) => [friend.id, friend])).values(),
       );
       setFilteredFriends(
         uniqueFriends.filter((friend: User) =>
-          friend.username?.toLowerCase().includes(search.toLowerCase())
-        )
+          friend.username?.toLowerCase().includes(search.toLowerCase()),
+        ),
       );
     } else {
       if (!groups) return;
       setFilteredGroups(
         groups.filter((group) =>
-          group.name?.toLowerCase().includes(search.toLowerCase())
-        )
+          group.name?.toLowerCase().includes(search.toLowerCase()),
+        ),
       );
     }
   }, [search, view, groups, friends]);
@@ -131,7 +131,7 @@ export default function ContactList({
               </div>
             ))
           : filteredFriends?.map((friend, index) => {
-              if (!user || friend.id === user.id) return null; // Use user from useChat
+              if (!user) return null; // Use user from useChat
 
               return (
                 <div
@@ -161,7 +161,7 @@ export default function ContactList({
             })}
       </div>
 
-      {(view === "groups" ? filteredGroups : filteredFriends ?? []).length ===
+      {(view === "groups" ? filteredGroups : (filteredFriends ?? [])).length ===
         0 && (
         <div className="text-center text-gray-500 mt-4">No matches found</div>
       )}
